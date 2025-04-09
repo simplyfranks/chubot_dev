@@ -1,0 +1,10 @@
+# Ignore everything
+/*
+
+# But not these
+!lib/
+!android/
+!pubspec.yaml
+!.gitignore
+# Ignore Android Studio project files
+*.iml
