@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:liontent/core/constants/colors.dart';
+import 'package:liontent/features/privacypolicy.dart';
 import 'package:liontent/features/splash/splashscreen.dart';
 
 void main(List<String> args) {
@@ -10,10 +11,8 @@ void main(List<String> args) {
     SystemUiOverlayStyle(
       statusBarColor: colors4Liontent.primary,
       statusBarIconBrightness: Brightness.light,
-    )
-    
+    ),
   );
-
 }
 
 class liontent extends StatelessWidget {
@@ -23,9 +22,9 @@ class liontent extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: MaterialApp(
+        debugShowCheckedModeBanner: false,
         home: introSplash(),
       ),
     );
   }
 }
-
