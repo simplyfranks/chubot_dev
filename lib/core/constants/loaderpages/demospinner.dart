@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:liontent/features/authPage.dart';
+import 'package:liontent/features/authentication/authPage.dart';
 
 class demospinner extends StatelessWidget {
   final Color pageColor;

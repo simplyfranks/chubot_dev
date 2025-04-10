@@ -3,6 +3,7 @@ import 'package:liontent/core/constants/colors.dart';
 import 'package:liontent/core/widgets/appbar.dart';
 import 'package:liontent/core/widgets/buttons.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:liontent/features/authentication/continue_email.dart';
 
 class authenticate extends StatelessWidget {
   const authenticate({super.key});
@@ -41,7 +42,12 @@ class authenticate extends StatelessWidget {
             ),
             SizedBox(height: 10),
             lengthButton1outline(
-              navigateTo: () {},
+              navigateTo: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => contEmail()),
+                );
+              },
               widgetchoice: Center(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,

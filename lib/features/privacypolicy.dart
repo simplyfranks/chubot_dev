@@ -3,7 +3,7 @@ import 'package:liontent/core/constants/colors.dart';
 import 'package:liontent/core/constants/loaderpages/demospinner.dart';
 import 'package:liontent/core/widgets/appbar.dart';
 import 'package:liontent/core/widgets/buttons.dart';
-import 'package:liontent/features/authPage.dart';
+import 'package:liontent/features/authentication/authPage.dart';
 
 class privacyWriteup extends StatelessWidget {
   const privacyWriteup({super.key});

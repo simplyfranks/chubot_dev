@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'package:liontent/core/constants/colors.dart';
 import 'package:liontent/core/utils/user_preference.dart';
-import 'package:liontent/features/authPage.dart';
+import 'package:liontent/features/authentication/authPage.dart';
 import 'package:liontent/features/privacypolicy.dart';
 import 'package:liontent/features/splash/loadingboxes.dart';
 import 'package:shimmer/shimmer.dart';
