@@ -41,7 +41,7 @@ class authenticate extends StatelessWidget {
               ),
             ),
             SizedBox(height: 10),
-            lengthButton1outline(
+            lengthButton1TranspOutline(
               navigateTo: () {
                 Navigator.push(
                   context,

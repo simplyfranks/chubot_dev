@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:liontent/core/constants/colors.dart';
 import 'package:liontent/features/authentication/continue_email.dart';
+import 'package:liontent/features/landing/landing_search.dart';
+import 'package:liontent/features/landing/landingsample.dart';
 import 'package:liontent/features/privacypolicy.dart';
 import 'package:liontent/features/splash/splashscreen.dart';
 
@@ -22,7 +24,10 @@ class liontent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: MaterialApp(debugShowCheckedModeBanner: false, home: contEmail()),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: introSplash(),
+      ),
     );
   }
 }

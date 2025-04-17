@@ -56,11 +56,11 @@ class lengthButton1Transp extends StatelessWidget {
   }
 }
 
-class lengthButton1outline extends StatelessWidget {
+class lengthButton1TranspOutline extends StatelessWidget {
   final VoidCallback navigateTo;
   final Widget widgetchoice;
 
-  const lengthButton1outline({
+  const lengthButton1TranspOutline({
     super.key,
     required this.navigateTo,
     required this.widgetchoice,
