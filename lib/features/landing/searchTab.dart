@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:liontent/core/widgets/appbar.dart';
-import 'package:liontent/features/landing/lodges.dart';
-import 'package:liontent/features/landing/properties.dart';
+import 'package:liontent/features/landing/searchtabs/lodges.dart';
+import 'package:liontent/features/landing/searchtabs/properties.dart';
+import 'package:liontent/features/landing/searchtabs/taxi.dart';
 
 class searchTab extends StatefulWidget {
   const searchTab({super.key});
@@ -40,7 +41,7 @@ class _searchTabState extends State<searchTab>
               children: [
                 lodgesTabContent(), // Content for Lodges tab
                 propertiesTabContent(), // Content for Properties tab
-                Center(child: Text('Taxi Content')), // Content for Taxi tab
+                taxiTabContent(), // Content for Taxi tab
               ],
             ),
           ),

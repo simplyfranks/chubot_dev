@@ -1,4 +1,8 @@
+import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:line_icons/line_icon.dart';
+import 'package:line_icons/line_icons.dart';
 import 'package:liontent/core/constants/colors.dart';
 
 PreferredSize customAppBar1({required VoidCallback closeOpera}) {
@@ -95,12 +99,18 @@ class _searchAppBarState extends State<searchAppBar> {
               unselectedLabelColor:
                   Colors.white60, // Color of unselected tab text
               tabs: const [
-                Tab(icon: Icon(Icons.hotel), text: 'Lodges'), // Lodges tab
                 Tab(
-                  icon: Icon(Icons.home),
+                  icon: Icon(FeatherIcons.home),
+                  text: 'Lodges',
+                ), // Lodges tab
+                Tab(
+                  icon: Icon(FontAwesomeIcons.couch),
                   text: 'Properties',
                 ), // Properties tab
-                Tab(icon: Icon(Icons.local_taxi), text: 'Taxi'), // Taxi tab
+                Tab(
+                  icon: Icon(FontAwesomeIcons.carSide),
+                  text: 'SwiftRide',
+                ), // Taxi tab
               ],
             ),
           ],
@@ -109,26 +119,6 @@ class _searchAppBarState extends State<searchAppBar> {
     );
   }
 }
-// PreferredSize landingAppBar() {
-//   return PreferredSize(
-//     preferredSize: const Size.fromHeight(100),
-//     child: Container(
-//       padding: EdgeInsets.only(left: 10, right: 0, top: 16),
-//       decoration: BoxDecoration(
-//         color: colors4Liontent.primary, // Background color of the app bar
-//         boxShadow: [
-//           BoxShadow(
-//             color: Colors.black.withOpacity(0.2), // Shadow color
-//             spreadRadius: 1, // Spread radius of the shadow
-//             blurRadius: 5, // Blur radius of the shadow
-//             offset: const Offset(0, 3), // Position of the shadow
-//           ),
-//         ],
-//       ),
-//       child: Column(children: [_appBarTitle()]),
-//     ),
-//   );
-// }
 
 Widget _appBarTitle() {
   return Row(

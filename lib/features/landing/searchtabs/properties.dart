@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:liontent/core/constants/colors.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:feather_icons/feather_icons.dart';
 
 class propertiesTabContent extends StatefulWidget {
   const propertiesTabContent({super.key});
@@ -20,12 +22,13 @@ class _propertiesTabContentState extends State<propertiesTabContent> {
   ); // Get the current month
 
   final List<String> properties = [
-    'Hilltop',
-    'Odim',
-    'Behind flat',
-    'Odenigwe',
-    'Green house',
-    'University Road',
+    'Mattress',
+    'Storages',
+    'Tables',
+    'Chairs',
+    'Electronics',
+    'Home Décor',
+    'Cleaning Essentials',
     'Other',
   ];
 
@@ -37,16 +40,18 @@ class _propertiesTabContentState extends State<propertiesTabContent> {
     'image 1',
     'image 1',
     'image 1',
+    'image 1',
   ];
 
-  final List<String> conditionlvl = [
-    'Self-Contained',
-    'Single Room',
-    'A Room and Parlour',
-    'Two Rooms and Parlour',
-    'Three Rooms and Parlour',
-    'Other',
-  ];
+  final List<String> conditionlvl = ['5', '4', '3', '2', '1'];
+
+  final Map<String, String> conditionDescriptions = {
+    '5': 'Perfect condition, barely used',
+    '4': 'Great condition, minimal wear',
+    '3': 'Good condition, normal wear',
+    '2': 'Noticeable wear, still functional',
+    '1': 'Significant wear or minor issues',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -86,8 +91,8 @@ class _propertiesTabContentState extends State<propertiesTabContent> {
                           _buildSearchField(
                             bottomlength: 2.5,
                             toplength: 0,
-                            icon: Icons.location_on_outlined,
-                            title: 'Where do you want to stay?',
+                            icon: Icons.shopping_bag_outlined,
+                            title: 'What do you want to get?',
                             value: selectedArea,
                             items: properties,
                             onChanged:
@@ -98,8 +103,8 @@ class _propertiesTabContentState extends State<propertiesTabContent> {
                           _buildSearchField(
                             toplength: 2.5,
                             bottomlength: 2.5,
-                            icon: Icons.house_outlined,
-                            title: 'What type of room?',
+                            icon: FontAwesomeIcons.starHalfAlt,
+                            title: 'Condition of the item',
                             value: selectedRoomType,
                             items: conditionlvl,
                             onChanged:
@@ -120,7 +125,7 @@ class _propertiesTabContentState extends State<propertiesTabContent> {
                                 ),
                               ),
                             ),
-                            height: 40,
+                            height: 50,
                             width: double.infinity,
                             child: ElevatedButton(
                               onPressed: () {},
@@ -197,11 +202,11 @@ class _propertiesTabContentState extends State<propertiesTabContent> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Need more insights?',
+                    'Not sure of what to get?',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    'Explore through the most commonly picked properties around campus',
+                    'Browse through the list of properties available for your comfort',
                     style: TextStyle(fontSize: 12),
                   ),
                 ],
@@ -218,7 +223,7 @@ class _propertiesTabContentState extends State<propertiesTabContent> {
                   return Padding(
                     padding: const EdgeInsets.only(right: 16),
                     child: AreaCard(
-                      areaName: properties[index],
+                      propertyType: properties[index],
                       imageUrl: 'https://example.com/area${index + 1}.jpg',
                     ),
                   );
@@ -248,62 +253,221 @@ class _propertiesTabContentState extends State<propertiesTabContent> {
         ),
         borderRadius: BorderRadius.circular(0),
       ),
-      child: InkWell(
-        onTap: () {
-          showDialog(
-            context: context,
-            builder:
-                (context) => Dialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+      child: Container(
+        height: 50,
+        child: InkWell(
+          onTap: () {
+            if (title == 'Condition of the item') {
+              showDialog(
+                context: context,
+                builder:
+                    (context) => Dialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: SingleChildScrollView(
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                title,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              ...items
+                                  .map(
+                                    (item) => ListTile(
+                                      dense: true,
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                      ),
+                                      title: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: List.generate(5, (index) {
+                                          final starCount = int.parse(item);
+                                          return Icon(
+                                            Icons.star,
+                                            size: 20,
+                                            color:
+                                                index < starCount
+                                                    ? Colors.amber
+                                                    : Colors.grey[300],
+                                          );
+                                        }),
+                                      ),
+                                      onTap: () {
+                                        onChanged(item);
+                                        Navigator.pop(context);
+                                      },
+                                    ),
+                                  )
+                                  .toList(),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        ...items
-                            .map(
-                              (item) => ListTile(
-                                title: Text(item),
-                                onTap: () {
-                                  onChanged(item);
-                                  Navigator.pop(context);
-                                },
-                              ),
-                            )
-                            .toList(),
-                      ],
+                      ),
                     ),
-                  ),
+              );
+            } else {
+              showDialog(
+                context: context,
+                builder:
+                    (context) => Dialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: SingleChildScrollView(
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                title,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              ...items
+                                  .map(
+                                    (item) => ListTile(
+                                      title: Text(item),
+                                      onTap: () {
+                                        onChanged(item);
+                                        Navigator.pop(context);
+                                      },
+                                    ),
+                                  )
+                                  .toList(),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+              );
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Icon(icon, color: colors4Liontent.primary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child:
+                      value != null
+                          ? title == 'Condition of the item'
+                              ? SizedBox(
+                                height: 20,
+                                child: Center(
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      ...List.generate(5, (index) {
+                                        final starCount = int.parse(value);
+                                        return Icon(
+                                          Icons.star,
+                                          size: 20,
+                                          color:
+                                              index < starCount
+                                                  ? Colors.amber
+                                                  : Colors.grey[300],
+                                        );
+                                      }),
+                                    ],
+                                  ),
+                                ),
+                              )
+                              : Text(
+                                value,
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 16,
+                                ),
+                              )
+                          : Text(
+                            title,
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 16,
+                            ),
+                          ),
                 ),
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              Icon(icon, color: colors4Liontent.primary),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  value ?? title,
-                  style: TextStyle(
-                    color: value != null ? Colors.black : Colors.grey,
-                    fontSize: 16,
+                if (title == 'Condition of the item')
+                  IconButton(
+                    icon: Icon(Icons.info_outline, size: 20),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder:
+                            (context) => Dialog(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Condition Rating Guide',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    SizedBox(height: 8),
+                                    ...items
+                                        .map(
+                                          (item) => Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 4,
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                ...List.generate(5, (index) {
+                                                  final starCount = int.parse(
+                                                    item,
+                                                  );
+                                                  return Icon(
+                                                    Icons.star,
+                                                    size: 16,
+                                                    color:
+                                                        index < starCount
+                                                            ? Colors.amber
+                                                            : Colors.grey[300],
+                                                  );
+                                                }),
+                                                SizedBox(width: 8),
+                                                Text(
+                                                  conditionDescriptions[item] ??
+                                                      '',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        )
+                                        .toList(),
+                                  ],
+                                ),
+                              ),
+                            ),
+                      );
+                    },
                   ),
-                ),
-              ),
-              const Icon(Icons.arrow_drop_down, color: Colors.grey),
-            ],
+                const Icon(Icons.arrow_drop_down, color: Colors.grey),
+              ],
+            ),
           ),
         ),
       ),
@@ -382,70 +546,76 @@ class _PriceRangeDialogState extends State<PriceRangeDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Price Range',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            RangeSlider(
-              values: _values,
-              min: 3000,
-              max: 1000000,
-              divisions: 96,
-              activeColor: colors4Liontent.primary,
-              inactiveColor: Colors.grey.withOpacity(0.2),
-              onChanged: (RangeValues values) {
-                setState(() {
-                  _values = values;
-                });
-              },
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '₦${_values.start.round()}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    '₦${_values.end.round()}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => widget.onApply(_values),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colors4Liontent.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+    return Center(
+      child: SingleChildScrollView(
+        child: Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Price Range',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                RangeSlider(
+                  values: _values,
+                  min: 3000,
+                  max: 1000000,
+                  divisions: 96,
+                  activeColor: colors4Liontent.primary,
+                  inactiveColor: Colors.grey.withOpacity(0.2),
+                  onChanged: (RangeValues values) {
+                    setState(() {
+                      _values = values;
+                    });
+                  },
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '₦${_values.start.round()}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        '₦${_values.end.round()}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
                 ),
-                child: const Text(
-                  'Apply',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => widget.onApply(_values),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colors4Liontent.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Apply',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -558,10 +728,14 @@ class LodgeCard extends StatelessWidget {
 }
 
 class AreaCard extends StatelessWidget {
-  final String areaName;
+  final String propertyType;
   final String imageUrl;
 
-  const AreaCard({super.key, required this.areaName, required this.imageUrl});
+  const AreaCard({
+    super.key,
+    required this.propertyType,
+    required this.imageUrl,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -607,7 +781,7 @@ class AreaCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                areaName,
+                propertyType,
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,

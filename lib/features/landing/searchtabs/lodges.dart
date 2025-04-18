@@ -120,7 +120,7 @@ class _lodgesTabContentState extends State<lodgesTabContent> {
                                 ),
                               ),
                             ),
-                            height: 40,
+                            height: 50,
                             width: double.infinity,
                             child: ElevatedButton(
                               onPressed: () {},
@@ -384,71 +384,75 @@ class _PriceRangeDialogState extends State<PriceRangeDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Price Range',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              RangeSlider(
-                values: _values,
-                min: 40000,
-                max: 1000000,
-                divisions: 96,
-                activeColor: colors4Liontent.primary,
-                inactiveColor: Colors.grey.withOpacity(0.2),
-                onChanged: (RangeValues values) {
-                  setState(() {
-                    _values = values;
-                  });
-                },
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '₦${_values.start.round()}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      '₦${_values.end.round()}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
+    return Center(
+      child: SingleChildScrollView(
+        child: Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Price Range',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => widget.onApply(_values),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: colors4Liontent.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text(
-                    'Apply',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+                const SizedBox(height: 16),
+                RangeSlider(
+                  values: _values,
+                  min: 40000,
+                  max: 1000000,
+                  divisions: 96,
+                  activeColor: colors4Liontent.primary,
+                  inactiveColor: Colors.grey.withOpacity(0.2),
+                  onChanged: (RangeValues values) {
+                    setState(() {
+                      _values = values;
+                    });
+                  },
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '₦${_values.start.round()}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        '₦${_values.end.round()}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => widget.onApply(_values),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colors4Liontent.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Apply',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
