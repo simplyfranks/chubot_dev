@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:liontent/core/constants/colors.dart';
 import 'package:liontent/features/authentication/continue_email.dart';
 import 'package:liontent/features/landing/landing_search.dart';
-import 'package:liontent/features/landing/searchTab.dart';
+import 'package:liontent/features/landing/searchtabs/searchTab.dart';
 import 'package:liontent/features/landing/searchtabs/properties.dart';
 
 import 'package:liontent/features/privacypolicy.dart';

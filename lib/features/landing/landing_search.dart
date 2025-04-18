@@ -3,7 +3,9 @@ import 'dart:ffi';
 import 'package:flutter/material.dart';
 import 'package:liontent/core/constants/colors.dart';
 import 'package:liontent/core/widgets/appbar.dart';
-import 'package:liontent/features/landing/searchTab.dart';
+import 'package:liontent/features/landing/bookedPage.dart';
+import 'package:liontent/features/landing/savedPage.dart';
+import 'package:liontent/features/landing/searchtabs/searchTab.dart';
 
 class landingPageSearch extends StatefulWidget {
   const landingPageSearch({super.key});
@@ -18,8 +20,8 @@ class _landingPageSearchState extends State<landingPageSearch> {
   // List of pages for each tab in the BottomNavigationBar
   final List<Widget> _pages = [
     searchTab(),
-    Container(child: Center(child: Text('1'))), // Saved tab placeholder
-    Container(child: Center(child: Text('2'))), // Bookings tab placeholder
+    usersSave(), // Saved tab placeholder
+    usersBooked(), // Bookings tab placeholder
     Container(child: Center(child: Text('3'))), // My Account tab placeholder
   ];
 

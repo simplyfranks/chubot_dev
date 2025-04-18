@@ -366,23 +366,21 @@ class _propertiesTabContentState extends State<propertiesTabContent> {
                           ? title == 'Condition of the item'
                               ? SizedBox(
                                 height: 20,
-                                child: Center(
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      ...List.generate(5, (index) {
-                                        final starCount = int.parse(value);
-                                        return Icon(
-                                          Icons.star,
-                                          size: 20,
-                                          color:
-                                              index < starCount
-                                                  ? Colors.amber
-                                                  : Colors.grey[300],
-                                        );
-                                      }),
-                                    ],
-                                  ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    ...List.generate(5, (index) {
+                                      final starCount = int.parse(value);
+                                      return Icon(
+                                        Icons.star,
+                                        size: 20,
+                                        color:
+                                            index < starCount
+                                                ? Colors.amber
+                                                : Colors.grey[300],
+                                      );
+                                    }),
+                                  ],
                                 ),
                               )
                               : Text(
@@ -401,69 +399,78 @@ class _propertiesTabContentState extends State<propertiesTabContent> {
                           ),
                 ),
                 if (title == 'Condition of the item')
-                  IconButton(
-                    icon: Icon(Icons.info_outline, size: 20),
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder:
-                            (context) => Dialog(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Container(
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      'Condition Rating Guide',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
+                  Container(
+                    padding: EdgeInsets.zero,
+                    height: 24,
+                    alignment: Alignment.center,
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: BoxConstraints(),
+                      icon: Icon(Icons.info_outline, size: 20),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder:
+                              (context) => Dialog(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Condition Rating Guide',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
-                                    ),
-                                    SizedBox(height: 8),
-                                    ...items
-                                        .map(
-                                          (item) => Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 4,
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                ...List.generate(5, (index) {
-                                                  final starCount = int.parse(
-                                                    item,
-                                                  );
-                                                  return Icon(
-                                                    Icons.star,
-                                                    size: 16,
-                                                    color:
-                                                        index < starCount
-                                                            ? Colors.amber
-                                                            : Colors.grey[300],
-                                                  );
-                                                }),
-                                                SizedBox(width: 8),
-                                                Text(
-                                                  conditionDescriptions[item] ??
-                                                      '',
-                                                  style: TextStyle(
-                                                    fontSize: 12,
+                                      SizedBox(height: 8),
+                                      ...items
+                                          .map(
+                                            (item) => Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 4,
                                                   ),
-                                                ),
-                                              ],
+                                              child: Row(
+                                                children: [
+                                                  ...List.generate(5, (index) {
+                                                    final starCount = int.parse(
+                                                      item,
+                                                    );
+                                                    return Icon(
+                                                      Icons.star,
+                                                      size: 16,
+                                                      color:
+                                                          index < starCount
+                                                              ? Colors.amber
+                                                              : Colors
+                                                                  .grey[300],
+                                                    );
+                                                  }),
+                                                  SizedBox(width: 8),
+                                                  Text(
+                                                    conditionDescriptions[item] ??
+                                                        '',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
-                                          ),
-                                        )
-                                        .toList(),
-                                  ],
+                                          )
+                                          .toList(),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
                 const Icon(Icons.arrow_drop_down, color: Colors.grey),
               ],

@@ -81,3 +81,26 @@ class lengthButton1TranspOutline extends StatelessWidget {
     );
   }
 }
+
+class shortButton1Light extends StatelessWidget {
+  final Widget widgetchoice;
+  final VoidCallback navigateTo;
+
+  const shortButton1Light({
+    super.key,
+    required this.widgetchoice,
+    required this.navigateTo,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: navigateTo,
+      child: widgetchoice,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: colors4Liontent.primary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+}

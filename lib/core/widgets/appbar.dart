@@ -196,3 +196,42 @@ Widget _appBarTitle() {
     ],
   );
 }
+
+PreferredSize customAppBar2({required String bartitle}) {
+  return PreferredSize(
+    preferredSize: const Size.fromHeight(100),
+    child: Container(
+      padding: EdgeInsets.only(left: 20, right: 15),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            bartitle,
+            style: TextStyle(
+              color: colors4Liontent.secondary,
+              fontWeight: FontWeight.w600,
+              fontSize: 18,
+            ),
+          ),
+          SizedBox(height: 70),
+          IconButton(
+            onPressed: () {},
+            icon: Icon(Icons.add, size: 30, color: colors4Liontent.secondary),
+          ),
+        ],
+      ),
+      decoration: BoxDecoration(
+        color: colors4Liontent.primary,
+        /*border: Border(bottom: BorderSide(color: Colors.black, width: 0.5), ),*/ boxShadow:
+            [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                spreadRadius: 1,
+                blurRadius: 5,
+                offset: const Offset(0, 3), // changes position of shadow
+              ),
+            ],
+      ),
+    ),
+  );
+}
