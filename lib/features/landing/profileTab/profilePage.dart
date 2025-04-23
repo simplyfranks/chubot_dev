@@ -8,9 +8,32 @@ import 'package:liontent/core/constants/colors.dart';
 import 'package:liontent/core/widgets/buttons.dart';
 import 'package:liontent/features/landing/profileTab/completeProfile.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class usersProfile extends StatelessWidget {
+class usersProfile extends StatefulWidget {
   const usersProfile({super.key});
+
+  @override
+  State<usersProfile> createState() => _usersProfileState();
+}
+
+class _usersProfileState extends State<usersProfile> {
+  String userName = "User"; // Default name
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  // Load user data from SharedPreferences
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      // Get the user's first name, defaulting to "User" if not found
+      userName = prefs.getString('firstName') ?? "User";
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,10 +60,14 @@ class usersProfile extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            CircleAvatar(child: Text("F")),
+                            CircleAvatar(
+                              child: Text(
+                                userName.isNotEmpty ? userName[0] : "U",
+                              ),
+                            ),
                             SizedBox(width: 10),
                             Text(
-                              "Hi, Alonzo",
+                              "Hi, $userName",
                               style: TextStyle(
                                 fontSize: 18,
                                 color: Colors.white,
