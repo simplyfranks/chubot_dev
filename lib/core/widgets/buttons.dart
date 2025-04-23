@@ -99,7 +99,33 @@ class shortButton1Light extends StatelessWidget {
       child: widgetchoice,
       style: ElevatedButton.styleFrom(
         backgroundColor: colors4Liontent.primary,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+      ),
+    );
+  }
+}
+
+class lengthButton1White extends StatelessWidget {
+  final VoidCallback navigateTo;
+  final Widget widgetchoice;
+
+  const lengthButton1White({
+    super.key,
+    required this.navigateTo,
+    required this.widgetchoice,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      onPressed: navigateTo,
+      child: Center(child: widgetchoice),
+      style: TextButton.styleFrom(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          side: BorderSide.none,
+          borderRadius: BorderRadius.circular(7),
+        ),
       ),
     );
   }

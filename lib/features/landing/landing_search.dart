@@ -1,9 +1,8 @@
-import 'dart:ffi';
-
 import 'package:flutter/material.dart';
 import 'package:liontent/core/constants/colors.dart';
 import 'package:liontent/core/widgets/appbar.dart';
 import 'package:liontent/features/landing/bookedPage.dart';
+import 'package:liontent/features/landing/profileTab/profilePage.dart';
 import 'package:liontent/features/landing/savedPage.dart';
 import 'package:liontent/features/landing/searchtabs/searchTab.dart';
 
@@ -22,7 +21,7 @@ class _landingPageSearchState extends State<landingPageSearch> {
     searchTab(),
     usersSave(), // Saved tab placeholder
     usersBooked(), // Bookings tab placeholder
-    Container(child: Center(child: Text('3'))), // My Account tab placeholder
+    usersProfile(), // My Account tab placeholder
   ];
 
   @override
