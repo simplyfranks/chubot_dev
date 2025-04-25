@@ -9,6 +9,7 @@ import 'package:liontent/core/widgets/buttons.dart';
 import 'package:liontent/features/landing/profileTab/completeProfile.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io';
 
 class usersProfile extends StatefulWidget {
   const usersProfile({super.key});
@@ -19,6 +20,7 @@ class usersProfile extends StatefulWidget {
 
 class _usersProfileState extends State<usersProfile> {
   String userName = "User"; // Default name
+  File? _profileImage;
 
   @override
   void initState() {
@@ -29,9 +31,21 @@ class _usersProfileState extends State<usersProfile> {
   // Load user data from SharedPreferences
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
+
+    // Get profile image path
+    final imagePath = prefs.getString('profileImagePath');
+
     setState(() {
       // Get the user's first name, defaulting to "User" if not found
       userName = prefs.getString('firstName') ?? "User";
+
+      // Set profile image if available
+      if (imagePath != null) {
+        final imageFile = File(imagePath);
+        if (imageFile.existsSync()) {
+          _profileImage = imageFile;
+        }
+      }
     });
   }
 
@@ -61,9 +75,25 @@ class _usersProfileState extends State<usersProfile> {
                         Row(
                           children: [
                             CircleAvatar(
-                              child: Text(
-                                userName.isNotEmpty ? userName[0] : "U",
-                              ),
+                              radius: 25,
+                              backgroundColor: Colors.grey[300],
+                              backgroundImage:
+                                  _profileImage != null
+                                      ? FileImage(_profileImage!)
+                                      : null,
+                              child:
+                                  _profileImage == null
+                                      ? Text(
+                                        userName.isNotEmpty
+                                            ? userName[0].toUpperCase()
+                                            : "U",
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                          color: colors4Liontent.primary,
+                                        ),
+                                      )
+                                      : null,
                             ),
                             SizedBox(width: 10),
                             Text(
@@ -145,13 +175,19 @@ class _usersProfileState extends State<usersProfile> {
                       style: TextStyle(color: colors4Liontent.secondary),
                     ),
                   ),
-                  navigateTo: () {
-                    Navigator.push(
+                  navigateTo: () async {
+                    // Navigate to profile completion page and await result
+                    final result = await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => completeUserProfile(),
                       ),
                     );
+
+                    // If profile was updated, refresh the data
+                    if (result == true) {
+                      _loadUserData();
+                    }
                   },
                 ),
               ),

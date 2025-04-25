@@ -29,7 +29,7 @@ class liontent extends StatelessWidget {
     return SafeArea(
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: completeUserProfile(),
+        home: landingPageSearch(),
       ),
     );
   }

@@ -43,10 +43,14 @@ dependencies:
   material_design_icons_flutter: ^7.0.7296
   line_icons: ^2.0.3
   feather_icons: ^1.2.0
-
+  flutter_contacts: ^1.1.9+2
+  image_picker: ^1.1.2
+  path_provider: ^2.1.5
+  camera: ^0.11.1
+  image_cropper: ^9.1.0
 
 dev_dependencies:
-  flutter_test:
+  flutter_test: 
     sdk: flutter
 
   # The "flutter_lints" package below contains a set of recommended lints to

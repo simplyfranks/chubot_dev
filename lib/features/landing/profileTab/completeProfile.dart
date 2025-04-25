@@ -4,6 +4,11 @@ import 'package:liontent/core/widgets/buttons.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:async';
 
 class completeUserProfile extends StatefulWidget {
   const completeUserProfile({super.key});
@@ -21,9 +26,28 @@ class _completeUserProfileState extends State<completeUserProfile> {
   final TextEditingController addressController = TextEditingController();
   final TextEditingController dateOfBirthController = TextEditingController();
   final TextEditingController occupationController = TextEditingController();
-  final TextEditingController emergencyContactController =
-      TextEditingController();
   final TextEditingController matricNumberController = TextEditingController();
+
+  // Country codes
+  String selectedCountryCode = '+234'; // Default to Nigeria
+  final List<Map<String, String>> countryCodes = [
+    {'code': '+234', 'country': 'Nigeria 🇳🇬'},
+    {'code': '+233', 'country': 'Ghana 🇬🇭'},
+    {'code': '+225', 'country': 'Ivory Coast 🇨🇮'},
+    {'code': '+228', 'country': 'Togo 🇹🇬'},
+    {'code': '+229', 'country': 'Benin 🇧🇯'},
+    {'code': '+232', 'country': 'Sierra Leone 🇸🇱'},
+    {'code': '+231', 'country': 'Liberia 🇱🇷'},
+    {'code': '+224', 'country': 'Guinea 🇬🇳'},
+    {'code': '+221', 'country': 'Senegal 🇸🇳'},
+    {'code': '+220', 'country': 'Gambia 🇬🇲'},
+    {'code': '+44', 'country': 'United Kingdom 🇬🇧'},
+    {'code': '+1', 'country': 'United States 🇺🇸'},
+    {'code': '+49', 'country': 'Germany 🇩🇪'},
+  ];
+
+  // Emergency contacts
+  List<EmergencyContact> emergencyContacts = [];
 
   // Form validation
   final _formKey = GlobalKey<FormState>();
@@ -34,10 +58,35 @@ class _completeUserProfileState extends State<completeUserProfile> {
   String? selectedGender;
   List<String> genderOptions = ['Male', 'Female', 'Other'];
 
+  // List of critical fields that can't be edited for 45 days
+  final List<String> criticalFields = [
+    'firstName',
+    'lastName',
+    'phone',
+    'gender',
+    'dateOfBirth',
+    'email',
+    'matricNumber',
+  ];
+
+  // Track lock status of each field
+  Map<String, bool> fieldLockStatus = {};
+
+  // Track remaining days for locked fields
+  Map<String, int> fieldLockRemainingDays = {};
+
+  // Profile image properties
+  File? _profileImage;
+  bool _isLivenessVerified = false;
+  final ImagePicker _picker = ImagePicker();
+
   @override
   void initState() {
     super.initState();
+    _initLockedStatus();
     _loadUserData();
+    _loadProfileImage();
+
     // Show the warning dialog after the widget is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _showRestrictionWarningDialog();
@@ -53,7 +102,6 @@ class _completeUserProfileState extends State<completeUserProfile> {
     addressController.dispose();
     dateOfBirthController.dispose();
     occupationController.dispose();
-    emergencyContactController.dispose();
     matricNumberController.dispose();
     super.dispose();
   }
@@ -67,19 +115,64 @@ class _completeUserProfileState extends State<completeUserProfile> {
       lastNameController.text = prefs.getString('lastName') ?? '';
       emailController.text = prefs.getString('email') ?? '';
       phoneController.text = prefs.getString('phone') ?? '';
+      selectedCountryCode = prefs.getString('countryCode') ?? '+234';
       addressController.text = prefs.getString('address') ?? '';
       dateOfBirthController.text = prefs.getString('dateOfBirth') ?? '';
       occupationController.text = prefs.getString('occupation') ?? '';
-      emergencyContactController.text =
-          prefs.getString('emergencyContact') ?? '';
       matricNumberController.text = prefs.getString('matricNumber') ?? '';
       selectedGender = prefs.getString('gender');
+
+      // Load field lock states
+      _loadFieldLockStatus();
+
+      // Load emergency contacts using the dedicated method
+      _loadEmergencyContacts();
+    });
+  }
+
+  // Load field lock status
+  Future<void> _loadFieldLockStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // For each critical field, check if it's locked and until when
+    criticalFields.forEach((field) {
+      final lastEditTime = prefs.getInt('${field}LastEdit');
+      if (lastEditTime != null) {
+        final lockUntil = DateTime.fromMillisecondsSinceEpoch(
+          lastEditTime,
+        ).add(Duration(days: 45));
+        final now = DateTime.now();
+
+        // Set locked state based on whether the lock period has expired
+        fieldLockStatus[field] = now.isBefore(lockUntil);
+        if (fieldLockStatus[field]!) {
+          // Calculate days remaining in lock period
+          final daysRemaining = lockUntil.difference(now).inDays;
+          fieldLockRemainingDays[field] = daysRemaining;
+        }
+      } else {
+        fieldLockStatus[field] = false;
+      }
+    });
+  }
+
+  // Dedicated method to load emergency contacts
+  Future<void> _loadEmergencyContacts() async {
+    final prefs = await SharedPreferences.getInstance();
+    final contactsJson = prefs.getStringList('emergencyContacts') ?? [];
+
+    setState(() {
+      emergencyContacts =
+          contactsJson
+              .map((json) => EmergencyContact.fromJson(jsonDecode(json)))
+              .toList();
     });
   }
 
   // Save user data to SharedPreferences
   Future<void> _saveUserData() async {
     final prefs = await SharedPreferences.getInstance();
+    final now = DateTime.now().millisecondsSinceEpoch;
 
     // Format the first name properly
     String firstName = firstNameController.text.trim();
@@ -88,19 +181,70 @@ class _completeUserProfileState extends State<completeUserProfile> {
           firstName[0].toUpperCase() + firstName.substring(1).toLowerCase();
     }
 
+    // Check which critical fields have changed and update their last edit time
+    if (prefs.getString('firstName') != firstName) {
+      await prefs.setInt('firstNameLastEdit', now);
+      fieldLockStatus['firstName'] = true;
+    }
+
+    if (prefs.getString('lastName') != lastNameController.text.trim()) {
+      await prefs.setInt('lastNameLastEdit', now);
+      fieldLockStatus['lastName'] = true;
+    }
+
+    if (prefs.getString('email') != emailController.text.trim()) {
+      await prefs.setInt('emailLastEdit', now);
+      fieldLockStatus['email'] = true;
+    }
+
+    if (prefs.getString('phone') != phoneController.text.trim() ||
+        prefs.getString('countryCode') != selectedCountryCode) {
+      await prefs.setInt('phoneLastEdit', now);
+      fieldLockStatus['phone'] = true;
+    }
+
+    if (prefs.getString('dateOfBirth') != dateOfBirthController.text.trim()) {
+      await prefs.setInt('dateOfBirthLastEdit', now);
+      fieldLockStatus['dateOfBirth'] = true;
+    }
+
+    if (prefs.getString('gender') != selectedGender) {
+      await prefs.setInt('genderLastEdit', now);
+      fieldLockStatus['gender'] = true;
+    }
+
+    if (prefs.getString('matricNumber') != matricNumberController.text.trim()) {
+      await prefs.setInt('matricNumberLastEdit', now);
+      fieldLockStatus['matricNumber'] = true;
+    }
+
+    // Save the actual data
     await prefs.setString('firstName', firstName);
     await prefs.setString('lastName', lastNameController.text.trim());
     await prefs.setString('email', emailController.text.trim());
     await prefs.setString('phone', phoneController.text.trim());
+    await prefs.setString('countryCode', selectedCountryCode);
     await prefs.setString('address', addressController.text.trim());
     await prefs.setString('dateOfBirth', dateOfBirthController.text.trim());
     await prefs.setString('occupation', occupationController.text.trim());
-    await prefs.setString(
-      'emergencyContact',
-      emergencyContactController.text.trim(),
-    );
     await prefs.setString('matricNumber', matricNumberController.text.trim());
     await prefs.setString('gender', selectedGender ?? '');
+
+    // Save emergency contacts using the dedicated method
+    await _saveEmergencyContacts();
+
+    // Update UI with locked fields
+    setState(() {});
+  }
+
+  // Dedicated method to save emergency contacts
+  Future<void> _saveEmergencyContacts() async {
+    final prefs = await SharedPreferences.getInstance();
+    final contactsJson =
+        emergencyContacts
+            .map((contact) => jsonEncode(contact.toJson()))
+            .toList();
+    await prefs.setStringList('emergencyContacts', contactsJson);
   }
 
   // Show warning dialog about critical field edit restrictions
@@ -131,7 +275,7 @@ class _completeUserProfileState extends State<completeUserProfile> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Please note that once you save changes to the following fields, you will not be able to modify them again for a fixed period of time:',
+                  'Please note that once you save changes to the following fields, you will not be able to modify them again for 45 days:',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: 12),
@@ -192,6 +336,179 @@ class _completeUserProfileState extends State<completeUserProfile> {
     );
   }
 
+  // Load profile image from shared preferences
+  Future<void> _loadProfileImage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final imagePath = prefs.getString('profileImagePath');
+    final isVerified = prefs.getBool('isLivenessVerified') ?? false;
+
+    if (imagePath != null) {
+      setState(() {
+        _profileImage = File(imagePath);
+        _isLivenessVerified = isVerified;
+      });
+    }
+  }
+
+  // Show profile image options
+  void _showProfileImageOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder:
+          (context) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.camera_alt),
+                title: Text('Take a photo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _takePhoto();
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.photo_library),
+                title: Text('Choose from gallery'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImageFromGallery();
+                },
+              ),
+              if (_profileImage != null)
+                ListTile(
+                  leading: Icon(Icons.delete),
+                  title: Text('Remove current photo'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _removeProfileImage();
+                  },
+                ),
+            ],
+          ),
+    );
+  }
+
+  // Take picture with camera
+  Future<void> _takePhoto() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 80,
+        preferredCameraDevice: CameraDevice.front,
+      );
+
+      if (image != null) {
+        await _saveProfileImage(File(image.path), false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Profile picture updated'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to take photo: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // Pick image from gallery
+  Future<void> _pickImageFromGallery() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
+
+      if (image != null) {
+        await _saveProfileImage(File(image.path), false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Profile picture updated'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to pick image: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // Save profile image to shared preferences
+  Future<void> _saveProfileImage(File image, bool isVerified) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Create a permanent copy of the image in app documents directory
+      final appDir = await getApplicationDocumentsDirectory();
+      final fileName = 'profile_${DateTime.now().millisecondsSinceEpoch}.png';
+      final savedImage = await image.copy('${appDir.path}/$fileName');
+
+      // Save the path
+      await prefs.setString('profileImagePath', savedImage.path);
+
+      setState(() {
+        _profileImage = savedImage;
+        _isLivenessVerified =
+            false; // Always set to false since we don't use liveness check
+        hasChanges = true; // Mark that changes were made
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error saving image: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // Remove profile image
+  Future<void> _removeProfileImage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('profileImagePath');
+      await prefs.remove('isLivenessVerified'); // Remove this too for cleanup
+
+      setState(() {
+        _profileImage = null;
+        _isLivenessVerified = false;
+        hasChanges = true; // Mark that changes were made
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profile picture removed'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error removing profile picture: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _initLockedStatus() {
+    // Initialize lock status for all critical fields
+    for (String field in criticalFields) {
+      fieldLockStatus[field] = false;
+      fieldLockRemainingDays[field] = 0;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -228,24 +545,26 @@ class _completeUserProfileState extends State<completeUserProfile> {
                     children: [
                       Stack(
                         children: [
-                          CircleAvatar(
-                            radius: 50,
-                            backgroundColor: Colors.grey[300],
-                            child:
-                                firstNameController.text.isNotEmpty
-                                    ? Text(
-                                      firstNameController.text[0].toUpperCase(),
-                                      style: TextStyle(
-                                        fontSize: 40,
-                                        fontWeight: FontWeight.bold,
-                                        color: colors4Liontent.primary,
-                                      ),
-                                    )
-                                    : Icon(
-                                      Icons.person,
-                                      size: 50,
-                                      color: Colors.grey[600],
-                                    ),
+                          GestureDetector(
+                            onTap: _showProfileImageOptions,
+                            child: CircleAvatar(
+                              radius: 60,
+                              backgroundColor: Colors.grey[300],
+                              backgroundImage:
+                                  _profileImage != null
+                                      ? FileImage(_profileImage!)
+                                      : null,
+                              child:
+                                  _profileImage == null
+                                      ? Text(
+                                        firstNameController.text.isNotEmpty
+                                            ? firstNameController.text[0]
+                                                .toUpperCase()
+                                            : 'U',
+                                        style: TextStyle(fontSize: 40),
+                                      )
+                                      : null,
+                            ),
                           ),
                           Positioned(
                             bottom: 0,
@@ -253,16 +572,37 @@ class _completeUserProfileState extends State<completeUserProfile> {
                             child: Container(
                               padding: EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: colors4Liontent.primary,
+                                color: Colors.white,
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
                                 Icons.camera_alt,
-                                color: Colors.white,
-                                size: 20,
+                                color: Colors.grey[800],
                               ),
                             ),
                           ),
+                          if (_profileImage != null)
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: Container(
+                                padding: EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color:
+                                      _isLivenessVerified
+                                          ? Colors.green
+                                          : Colors.orange,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  _isLivenessVerified
+                                      ? Icons.verified_user
+                                      : Icons.warning,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                       SizedBox(height: 10),
@@ -273,6 +613,22 @@ class _completeUserProfileState extends State<completeUserProfile> {
                           color: Colors.grey[600],
                         ),
                       ),
+                      if (_profileImage != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            _isLivenessVerified
+                                ? 'Liveness verified'
+                                : 'Image not verified with liveness check',
+                            style: TextStyle(
+                              color:
+                                  _isLivenessVerified
+                                      ? Colors.green
+                                      : Colors.orange,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -291,6 +647,11 @@ class _completeUserProfileState extends State<completeUserProfile> {
                     }
                     return null;
                   },
+                  enabled: !fieldLockStatus['firstName']!,
+                  tooltip:
+                      fieldLockStatus['firstName']!
+                          ? 'This field cannot be edited for ${fieldLockRemainingDays['firstName']} more days'
+                          : null,
                 ),
 
                 // Last Name
@@ -304,6 +665,11 @@ class _completeUserProfileState extends State<completeUserProfile> {
                     }
                     return null;
                   },
+                  enabled: !fieldLockStatus['lastName']!,
+                  tooltip:
+                      fieldLockStatus['lastName']!
+                          ? 'This field cannot be edited for ${fieldLockRemainingDays['lastName']} more days'
+                          : null,
                 ),
 
                 // Gender Selection
@@ -312,12 +678,19 @@ class _completeUserProfileState extends State<completeUserProfile> {
                   prefixIcon: Icons.person_outline,
                   value: selectedGender,
                   items: genderOptions,
-                  onChanged: (newValue) {
-                    setState(() {
-                      selectedGender = newValue;
-                      hasChanges = true;
-                    });
-                  },
+                  onChanged:
+                      fieldLockStatus['gender']!
+                          ? null
+                          : (newValue) {
+                            setState(() {
+                              selectedGender = newValue;
+                              hasChanges = true;
+                            });
+                          },
+                  tooltip:
+                      fieldLockStatus['gender']!
+                          ? 'This field cannot be edited for ${fieldLockRemainingDays['gender']} more days'
+                          : null,
                 ),
 
                 // Date of Birth
@@ -326,33 +699,41 @@ class _completeUserProfileState extends State<completeUserProfile> {
                   label: 'Date of Birth',
                   prefixIcon: Icons.calendar_today,
                   readOnly: true,
-                  onTap: () async {
-                    DateTime? pickedDate = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime(1950),
-                      lastDate: DateTime.now(),
-                      builder: (context, child) {
-                        return Theme(
-                          data: Theme.of(context).copyWith(
-                            colorScheme: ColorScheme.light(
-                              primary: colors4Liontent.primary,
-                            ),
-                          ),
-                          child: child!,
-                        );
-                      },
-                    );
+                  enabled: !fieldLockStatus['dateOfBirth']!,
+                  tooltip:
+                      fieldLockStatus['dateOfBirth']!
+                          ? 'This field cannot be edited for ${fieldLockRemainingDays['dateOfBirth']} more days'
+                          : null,
+                  onTap:
+                      fieldLockStatus['dateOfBirth']!
+                          ? null
+                          : () async {
+                            DateTime? pickedDate = await showDatePicker(
+                              context: context,
+                              initialDate: DateTime.now(),
+                              firstDate: DateTime(1950),
+                              lastDate: DateTime.now(),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: ColorScheme.light(
+                                      primary: colors4Liontent.primary,
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
 
-                    if (pickedDate != null) {
-                      setState(() {
-                        dateOfBirthController.text = DateFormat(
-                          'dd/MM/yyyy',
-                        ).format(pickedDate);
-                        hasChanges = true;
-                      });
-                    }
-                  },
+                            if (pickedDate != null) {
+                              setState(() {
+                                dateOfBirthController.text = DateFormat(
+                                  'dd/MM/yyyy',
+                                ).format(pickedDate);
+                                hasChanges = true;
+                              });
+                            }
+                          },
                 ),
 
                 SizedBox(height: 24),
@@ -364,6 +745,11 @@ class _completeUserProfileState extends State<completeUserProfile> {
                   label: 'Email',
                   prefixIcon: Icons.email_outlined,
                   keyboardType: TextInputType.emailAddress,
+                  enabled: !fieldLockStatus['email']!,
+                  tooltip:
+                      fieldLockStatus['email']!
+                          ? 'This field cannot be edited for ${fieldLockRemainingDays['email']} more days'
+                          : null,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your email';
@@ -377,18 +763,7 @@ class _completeUserProfileState extends State<completeUserProfile> {
                 ),
 
                 // Phone
-                _buildTextField(
-                  controller: phoneController,
-                  label: 'Phone Number',
-                  prefixIcon: Icons.phone_outlined,
-                  keyboardType: TextInputType.phone,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your phone number';
-                    }
-                    return null;
-                  },
-                ),
+                _buildPhoneNumberField(),
 
                 // Address
                 _buildTextField(
@@ -406,6 +781,27 @@ class _completeUserProfileState extends State<completeUserProfile> {
                   controller: matricNumberController,
                   label: 'Matric No. (if any)',
                   prefixIcon: FontAwesomeIcons.graduationCap,
+                  enabled: !fieldLockStatus['matricNumber']!,
+                  tooltip:
+                      fieldLockStatus['matricNumber']!
+                          ? 'This field cannot be edited for ${fieldLockRemainingDays['matricNumber']} more days'
+                          : null,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return null; // Matric number is optional
+                    }
+                    // Validate format: YYYY/XXXXXX or YYYY/XXXXXXX
+                    if (!RegExp(r'^\d{4}/\d{6,7}$').hasMatch(value)) {
+                      return 'Invalid Matric number format. Use YYYY/XXXXXX ';
+                    }
+                    // Validate year part (should be reasonable, e.g., not future year)
+                    int year = int.parse(value.split('/')[0]);
+                    int currentYear = DateTime.now().year;
+                    if (year < 1955 || year > currentYear) {
+                      return 'Year should be between 1955 and $currentYear';
+                    }
+                    return null;
+                  },
                 ),
 
                 // Occupation
@@ -415,13 +811,10 @@ class _completeUserProfileState extends State<completeUserProfile> {
                   prefixIcon: FontAwesomeIcons.briefcase,
                 ),
 
-                // Emergency Contact
-                _buildTextField(
-                  controller: emergencyContactController,
-                  label: 'Emergency Contact',
-                  prefixIcon: Icons.contact_phone_outlined,
-                  keyboardType: TextInputType.phone,
-                ),
+                SizedBox(height: 32),
+
+                // Emergency Contacts Section
+                _buildEmergencyContactsSection(),
 
                 SizedBox(height: 32),
 
@@ -434,6 +827,18 @@ class _completeUserProfileState extends State<completeUserProfile> {
                         hasChanges
                             ? () async {
                               if (_formKey.currentState!.validate()) {
+                                // Check if any critical fields were changed
+                                bool hasCriticalChanges =
+                                    await _hasCriticalFieldChanges();
+                                if (hasCriticalChanges) {
+                                  // Show confirmation dialog
+                                  bool shouldContinue =
+                                      await _showSaveConfirmationDialog();
+                                  if (!shouldContinue) {
+                                    return; // User canceled the save
+                                  }
+                                }
+
                                 await _saveUserData();
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
@@ -447,6 +852,9 @@ class _completeUserProfileState extends State<completeUserProfile> {
                                 setState(() {
                                   hasChanges = false;
                                 });
+
+                                // Return to previous screen with a result indicating profile was updated
+                                Navigator.pop(context, true);
                               }
                             }
                             : null,
@@ -506,8 +914,10 @@ class _completeUserProfileState extends State<completeUserProfile> {
     bool readOnly = false,
     VoidCallback? onTap,
     int maxLines = 1,
+    bool enabled = true,
+    String? tooltip,
   }) {
-    return Padding(
+    final textField = Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: TextFormField(
         controller: controller,
@@ -516,10 +926,16 @@ class _completeUserProfileState extends State<completeUserProfile> {
         readOnly: readOnly,
         onTap: onTap,
         maxLines: maxLines,
+        enabled: enabled,
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: Color(0xff1c6f0f)),
-          prefixIcon: Icon(prefixIcon, color: colors4Liontent.primary),
+          labelStyle: TextStyle(
+            color: enabled ? Color(0xff1c6f0f) : Colors.grey,
+          ),
+          prefixIcon: Icon(
+            prefixIcon,
+            color: enabled ? colors4Liontent.primary : Colors.grey,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: BorderSide(color: Colors.grey),
@@ -532,12 +948,24 @@ class _completeUserProfileState extends State<completeUserProfile> {
             borderRadius: BorderRadius.circular(8),
             borderSide: BorderSide(color: Colors.grey),
           ),
+          disabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
           contentPadding: EdgeInsets.symmetric(vertical: 15, horizontal: 15),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: enabled ? Colors.white : Colors.grey.shade100,
+          suffixIcon:
+              !enabled ? Icon(Icons.lock, color: Colors.grey, size: 18) : null,
         ),
       ),
     );
+
+    if (tooltip != null && !enabled) {
+      return Tooltip(message: tooltip, child: textField);
+    }
+
+    return textField;
   }
 
   // Helper method to build dropdown fields
@@ -546,16 +974,22 @@ class _completeUserProfileState extends State<completeUserProfile> {
     required IconData prefixIcon,
     required String? value,
     required List<String> items,
-    required Function(String?) onChanged,
+    required Function(String?)? onChanged,
+    String? tooltip,
   }) {
-    return Padding(
+    final dropdownField = Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: DropdownButtonFormField<String>(
         value: value,
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: Color(0xff1c6f0f)),
-          prefixIcon: Icon(prefixIcon, color: colors4Liontent.primary),
+          labelStyle: TextStyle(
+            color: onChanged != null ? Color(0xff1c6f0f) : Colors.grey,
+          ),
+          prefixIcon: Icon(
+            prefixIcon,
+            color: onChanged != null ? colors4Liontent.primary : Colors.grey,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: BorderSide(color: Colors.grey),
@@ -568,17 +1002,734 @@ class _completeUserProfileState extends State<completeUserProfile> {
             borderRadius: BorderRadius.circular(8),
             borderSide: BorderSide(color: Colors.grey),
           ),
+          disabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
           contentPadding: EdgeInsets.symmetric(vertical: 15, horizontal: 15),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: onChanged != null ? Colors.white : Colors.grey.shade100,
+          suffixIcon:
+              onChanged == null
+                  ? Icon(Icons.lock, color: Colors.grey, size: 18)
+                  : null,
         ),
         items:
             items.map((String item) {
               return DropdownMenuItem<String>(value: item, child: Text(item));
             }).toList(),
         onChanged: onChanged,
-        icon: Icon(Icons.arrow_drop_down, color: colors4Liontent.primary),
+        icon: Icon(
+          Icons.arrow_drop_down,
+          color: onChanged != null ? colors4Liontent.primary : Colors.grey,
+        ),
       ),
+    );
+
+    if (tooltip != null && onChanged == null) {
+      return Tooltip(message: tooltip, child: dropdownField);
+    }
+
+    return dropdownField;
+  }
+
+  // Build phone number field with country code
+  Widget _buildPhoneNumberField() {
+    final bool isPhoneLocked = fieldLockStatus['phone'] ?? false;
+    final phoneTooltip =
+        isPhoneLocked
+            ? 'This field cannot be edited for ${fieldLockRemainingDays['phone']} more days'
+            : null;
+
+    final phoneField = Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isPhoneLocked ? Colors.grey.shade100 : Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isPhoneLocked ? Colors.grey.shade300 : Colors.grey,
+          ),
+        ),
+        child: Row(
+          children: [
+            // Country code dropdown (smaller width)
+            SizedBox(
+              width: 90,
+              child: DropdownButtonHideUnderline(
+                child: ButtonTheme(
+                  alignedDropdown: true,
+                  child: DropdownButton<String>(
+                    value: selectedCountryCode,
+                    icon: Icon(
+                      Icons.arrow_drop_down,
+                      color:
+                          isPhoneLocked ? Colors.grey : colors4Liontent.primary,
+                      size: 20,
+                    ),
+                    iconSize: 20,
+                    elevation: 16,
+                    isDense: true,
+                    style: TextStyle(
+                      color: isPhoneLocked ? Colors.grey : Colors.black,
+                      fontSize: 14,
+                    ),
+                    onChanged:
+                        isPhoneLocked
+                            ? null
+                            : (String? newValue) {
+                              setState(() {
+                                selectedCountryCode = newValue!;
+                                hasChanges = true;
+                              });
+                            },
+                    items:
+                        countryCodes.map<DropdownMenuItem<String>>((
+                          Map<String, String> country,
+                        ) {
+                          return DropdownMenuItem<String>(
+                            value: country['code'],
+                            child: Text(
+                              country['code']!,
+                              style: TextStyle(fontSize: 14),
+                            ),
+                          );
+                        }).toList(),
+                    dropdownColor: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                ),
+              ),
+            ),
+
+            // Vertical divider
+            Container(height: 30, width: 1, color: Colors.grey.shade300),
+
+            // Phone number input
+            Expanded(
+              child: TextFormField(
+                controller: phoneController,
+                keyboardType: TextInputType.phone,
+                maxLength: 11,
+                enabled: !isPhoneLocked,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your phone number';
+                  }
+                  if (value.length < 10 || value.length > 11) {
+                    return 'Phone number must be 10-11 digits';
+                  }
+                  if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                    return 'Only numbers allowed';
+                  }
+                  return null;
+                },
+                decoration: InputDecoration(
+                  labelText: 'Phone Number',
+                  labelStyle: TextStyle(
+                    color: isPhoneLocked ? Colors.grey : Color(0xff1c6f0f),
+                  ),
+                  prefixIcon: Icon(
+                    Icons.phone_outlined,
+                    color:
+                        isPhoneLocked ? Colors.grey : colors4Liontent.primary,
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(
+                    vertical: 15,
+                    horizontal: 15,
+                  ),
+                  counterText: '',
+                  hintText: 'e.g. 8012345678',
+                  suffixIcon:
+                      isPhoneLocked
+                          ? Icon(Icons.lock, color: Colors.grey, size: 18)
+                          : null,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (phoneTooltip != null && isPhoneLocked) {
+      return Tooltip(message: phoneTooltip, child: phoneField);
+    }
+
+    return phoneField;
+  }
+
+  // Show country code selection bottom sheet
+  void _showCountryCodeSelector() {
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder:
+          (context) => Container(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Select Country Code',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 16),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: countryCodes.length,
+                    itemBuilder: (context, index) {
+                      final country = countryCodes[index];
+                      return ListTile(
+                        title: Text('${country['country']}'),
+                        subtitle: Text('${country['code']}'),
+                        onTap: () {
+                          setState(() {
+                            selectedCountryCode = country['code']!;
+                            hasChanges = true;
+                          });
+                          Navigator.pop(context);
+                        },
+                        selected: selectedCountryCode == country['code'],
+                        selectedTileColor: colors4Liontent.primary.withOpacity(
+                          0.1,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+    );
+  }
+
+  // Show dialog to set relationship
+  void _showRelationshipDialog(int index) {
+    final TextEditingController relationshipController =
+        TextEditingController();
+    relationshipController.text = emergencyContacts[index].relationship;
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text('Contact Relationship'),
+            content: TextField(
+              controller: relationshipController,
+              decoration: InputDecoration(
+                labelText: 'Relationship (e.g., Parent, Sibling)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    emergencyContacts[index].relationship =
+                        relationshipController.text;
+                    hasChanges = true;
+                  });
+
+                  // Save emergency contacts immediately when relationship is updated
+                  _saveEmergencyContacts();
+
+                  Navigator.pop(context);
+                },
+                style: TextButton.styleFrom(
+                  backgroundColor: colors4Liontent.primary,
+                  foregroundColor: Colors.white,
+                ),
+                child: Text('Save'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  // Remove emergency contact and update storage
+  void _removeContact(int index) {
+    setState(() {
+      emergencyContacts.removeAt(index);
+      hasChanges = true;
+    });
+
+    // Save emergency contacts immediately when removed
+    _saveEmergencyContacts();
+  }
+
+  // Add contact manually
+  void _addManualContact() {
+    if (emergencyContacts.length >= 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('You can only add up to 3 emergency contacts'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController phoneController = TextEditingController();
+    final TextEditingController relationshipController =
+        TextEditingController();
+    String contactCountryCode = '+234';
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => StatefulBuilder(
+            builder:
+                (context, setDialogState) => AlertDialog(
+                  title: Text('Add Emergency Contact'),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: nameController,
+                          decoration: InputDecoration(
+                            labelText: 'Full Name',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        // Phone number with country code
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Country code dropdown
+                            Container(
+                              width: 100,
+                              child: DropdownButtonFormField<String>(
+                                value: contactCountryCode,
+                                decoration: InputDecoration(
+                                  labelText: 'Code',
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(
+                                    vertical: 15,
+                                    horizontal: 10,
+                                  ),
+                                ),
+                                items:
+                                    countryCodes.map((country) {
+                                      return DropdownMenuItem<String>(
+                                        value: country['code'],
+                                        child: Text(
+                                          '${country['code']}',
+                                          style: TextStyle(fontSize: 14),
+                                        ),
+                                      );
+                                    }).toList(),
+                                onChanged: (value) {
+                                  setDialogState(() {
+                                    contactCountryCode = value!;
+                                  });
+                                },
+                                isDense: true,
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            // Phone number field
+                            Expanded(
+                              child: TextField(
+                                controller: phoneController,
+                                keyboardType: TextInputType.phone,
+                                maxLength: 11,
+                                decoration: InputDecoration(
+                                  labelText: 'Phone Number',
+                                  border: OutlineInputBorder(),
+                                  hintText: 'e.g. 8012345678',
+                                  counterText: '',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 10),
+                        TextField(
+                          controller: relationshipController,
+                          decoration: InputDecoration(
+                            labelText: 'Relationship',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        if (nameController.text.trim().isEmpty ||
+                            phoneController.text.trim().isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Name and phone number are required',
+                              ),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+
+                        // Validate phone number
+                        final phoneText = phoneController.text.trim();
+                        if (phoneText.length < 10 ||
+                            phoneText.length > 11 ||
+                            !RegExp(r'^[0-9]+$').hasMatch(phoneText)) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Phone number must be 10-11 digits',
+                              ),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+
+                        setState(() {
+                          emergencyContacts.add(
+                            EmergencyContact(
+                              name: nameController.text.trim(),
+                              phoneNumber: phoneController.text.trim(),
+                              relationship: relationshipController.text.trim(),
+                              countryCode: contactCountryCode,
+                            ),
+                          );
+                          hasChanges = true;
+                        });
+
+                        // Save emergency contacts immediately when added
+                        _saveEmergencyContacts();
+
+                        Navigator.pop(context);
+                      },
+                      style: TextButton.styleFrom(
+                        backgroundColor: colors4Liontent.primary,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: Text('Save'),
+                    ),
+                  ],
+                ),
+          ),
+    );
+  }
+
+  // Pick contact from phone contacts
+  Future<void> _pickContact() async {
+    if (emergencyContacts.length >= 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('You can only add up to 3 emergency contacts'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Just use the manual contact entry for now
+    _addManualContact();
+  }
+
+  // Emergency contacts section widget
+  Widget _buildEmergencyContactsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Emergency Contacts (${emergencyContacts.length}/3)',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: colors4Liontent.primary,
+              ),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // New button to pick from contacts
+                IconButton(
+                  onPressed:
+                      emergencyContacts.length >= 3 ? null : _pickContact,
+                  icon: Icon(
+                    Icons.contacts,
+                    color:
+                        emergencyContacts.length >= 3
+                            ? Colors.grey
+                            : colors4Liontent.primary,
+                  ),
+                  tooltip: 'Select from Phone Contacts',
+                ),
+                // Manual add button
+                IconButton(
+                  onPressed:
+                      emergencyContacts.length >= 3 ? null : _addManualContact,
+                  icon: Icon(
+                    Icons.person_add,
+                    color:
+                        emergencyContacts.length >= 3
+                            ? Colors.grey
+                            : colors4Liontent.primary,
+                  ),
+                  tooltip: 'Add Manually',
+                ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ...emergencyContacts.asMap().entries.map((entry) {
+          final index = entry.key;
+          final contact = entry.value;
+          return Card(
+            margin: EdgeInsets.only(bottom: 8),
+            elevation: 1,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: colors4Liontent.primary.withOpacity(0.2),
+                child: Icon(Icons.person, color: colors4Liontent.primary),
+              ),
+              title: Text(
+                contact.name,
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('${contact.countryCode} ${contact.phoneNumber}'),
+                  if (contact.relationship.isNotEmpty)
+                    Text(
+                      'Relationship: ${contact.relationship}',
+                      style: TextStyle(
+                        fontStyle: FontStyle.italic,
+                        fontSize: 12,
+                      ),
+                    ),
+                ],
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.edit, size: 20),
+                    onPressed: () => _showRelationshipDialog(index),
+                    tooltip: 'Edit Relationship',
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.delete, size: 20, color: Colors.red),
+                    onPressed: () => _removeContact(index),
+                    tooltip: 'Remove Contact',
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+        if (emergencyContacts.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.contact_phone, color: Colors.grey[400], size: 40),
+                SizedBox(height: 8),
+                Text(
+                  'No emergency contacts added yet',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Tap + to add contacts',
+                  style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  // Check if any critical fields were changed
+  Future<bool> _hasCriticalFieldChanges() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    if (prefs.getString('firstName') != firstNameController.text.trim())
+      return true;
+    if (prefs.getString('lastName') != lastNameController.text.trim())
+      return true;
+    if (prefs.getString('email') != emailController.text.trim()) return true;
+    if (prefs.getString('phone') != phoneController.text.trim()) return true;
+    if (prefs.getString('countryCode') != selectedCountryCode) return true;
+    if (prefs.getString('dateOfBirth') != dateOfBirthController.text.trim())
+      return true;
+    if (prefs.getString('gender') != selectedGender) return true;
+    if (prefs.getString('matricNumber') != matricNumberController.text.trim())
+      return true;
+
+    return false;
+  }
+
+  // Show confirmation dialog when saving critical fields
+  Future<bool> _showSaveConfirmationDialog() async {
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Column(
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.amber[700],
+                    size: 48,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'IMPORTANT NOTICE',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: Colors.amber[800],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'You are about to save changes to restricted fields:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 12),
+                  Text(
+                    'These fields cannot be edited again for 45 days after saving. Please verify that all information is correct.',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                  SizedBox(height: 16),
+                  Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.amber.shade300),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: Colors.amber[800],
+                          size: 20,
+                        ),
+                        SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'This restriction is in place to maintain data integrity. Are you sure you want to proceed?',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(false); // Cancel
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey[800],
+                  ),
+                  child: Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(true); // Confirm
+                  },
+                  style: TextButton.styleFrom(
+                    backgroundColor: colors4Liontent.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text('Yes, Save Changes'),
+                ),
+              ],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.amber.shade300, width: 1.5),
+              ),
+              backgroundColor: Colors.white,
+            );
+          },
+        ) ??
+        false; // Default to false if dialog is dismissed
+  }
+}
+
+// Emergency Contact Model
+class EmergencyContact {
+  String name;
+  String phoneNumber;
+  String relationship;
+  String countryCode;
+
+  EmergencyContact({
+    required this.name,
+    required this.phoneNumber,
+    required this.relationship,
+    required this.countryCode,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'phoneNumber': phoneNumber,
+      'relationship': relationship,
+      'countryCode': countryCode,
+    };
+  }
+
+  factory EmergencyContact.fromJson(Map<String, dynamic> json) {
+    return EmergencyContact(
+      name: json['name'] ?? '',
+      phoneNumber: json['phoneNumber'] ?? '',
+      relationship: json['relationship'] ?? '',
+      countryCode: json['countryCode'] ?? '+234',
     );
   }
 }
