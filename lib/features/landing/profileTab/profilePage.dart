@@ -6,7 +6,10 @@ import 'package:line_icons/line_icon.dart';
 import 'package:line_icons/line_icons.dart';
 import 'package:liontent/core/constants/colors.dart';
 import 'package:liontent/core/widgets/buttons.dart';
-import 'package:liontent/features/landing/profileTab/completeProfile.dart';
+import 'package:liontent/features/landing/profileTab/payment_methods.dart';
+import 'package:liontent/features/landing/profileTab/transaction_history.dart';
+import 'package:liontent/features/landing/profileTab/userDetails.dart';
+import 'package:liontent/features/landing/profileTab/user_security.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
@@ -94,27 +97,26 @@ class _usersProfileState extends State<usersProfile> {
   }
 
   // Load user data from SharedPreferences
-  Future<void> _loadUserData() async {
+  void _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
-
-    // Get profile image path
-    final imagePath = prefs.getString('profileImagePath');
-
     setState(() {
-      // Get the user's first name, defaulting to "User" if not found
-      userName = prefs.getString('firstName') ?? "User";
-
-      // Set profile image if available
-      if (imagePath != null) {
-        final imageFile = File(imagePath);
-        if (imageFile.existsSync()) {
-          _profileImage = imageFile;
-        }
-      }
-
-      // Update progress indicator after loading data
-      _profileProgress = _calculateProfileProgress();
+      userName = prefs.getString('firstName') ?? 'User';
+      _profileImage =
+          prefs.getString('profileImagePath') != null
+              ? File(prefs.getString('profileImagePath')!)
+              : null;
     });
+
+    // Check if the profile is already marked as complete
+    final bool isProfileComplete = prefs.getBool('profileComplete') ?? false;
+    if (isProfileComplete) {
+      setState(() {
+        _profileProgress = 1.0;
+      });
+    } else {
+      // Calculate the current progress
+      _calculateProfileProgress();
+    }
   }
 
   // Calculate the profile completion percentage
@@ -148,10 +150,32 @@ class _usersProfileState extends State<usersProfile> {
       final contactsJson = prefs.getStringList('emergencyContacts') ?? [];
       filledFields += contactsJson.length > 3 ? 3 : contactsJson.length;
 
-      // Update progress
-      setState(() {
-        _profileProgress = filledFields / totalFields;
-      });
+      // Save previous progress value to check if we need to update the UI
+      final double oldProgress = _profileProgress;
+      final double newProgress = filledFields / totalFields;
+
+      // Update progress if it changed
+      if (oldProgress != newProgress) {
+        setState(() {
+          _profileProgress = newProgress;
+        });
+
+        // If profile just became complete (crossed 100% threshold), save this state
+        if (oldProgress < 0.995 && newProgress >= 0.995) {
+          prefs.setBool('profileComplete', true);
+
+          // Show a congratulatory message
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Congratulations! Your profile is now complete.'),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        }
+      }
     });
 
     return _profileProgress; // Return current value while async operation completes
@@ -239,19 +263,13 @@ class _usersProfileState extends State<usersProfile> {
                       ],
                     ),
                     SizedBox(height: 20),
-                    // lengthButton1White(
-                    //   navigateTo: () {},
-                    //   widgetchoice: Row(
-                    //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    //     children: [
-                    //       Text('No Credits or Vouchers yet'),
-                    //       Text('₦ 0'),
                     _tile(
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
                             'No Credits or Vouchers',
+                            style: TextStyle(color: Colors.black),
                             overflow: TextOverflow.ellipsis,
                           ),
 
@@ -268,74 +286,94 @@ class _usersProfileState extends State<usersProfile> {
                   ],
                 ),
               ),
-              _sectionCard(
-                margin: horizontalMargin,
-                padding: contentPadding,
-                title: 'Complete your profile',
-                subtitle:
-                    'Complete your profile so as to make your next booking easier',
+              SizedBox(height: 30),
+              // Only show the "Complete your profile" card if profile is not 100% complete
+              if (_profileProgress <
+                  0.999) // Using 0.995 instead of 1.0 to account for floating point precision
+                _sectionCard(
+                  margin: horizontalMargin,
+                  padding: contentPadding,
+                  title: 'Complete your profile',
+                  subtitle:
+                      'Complete your profile so as to make your next booking easier',
 
-                buttonWidget: shortButton1Light(
-                  widgetchoice: Container(
-                    decoration: BoxDecoration(color: colors4Liontent.primary),
-                    child: Text(
-                      'Complete now',
-                      style: TextStyle(color: colors4Liontent.secondary),
-                    ),
-                  ),
-                  navigateTo: () async {
-                    // Navigate to profile completion page and await result
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => completeUserProfile(),
+                  buttonWidget: shortButton1Light(
+                    widgetchoice: Container(
+                      decoration: BoxDecoration(color: colors4Liontent.primary),
+                      child: Text(
+                        'Complete now',
+                        style: TextStyle(color: colors4Liontent.secondary),
                       ),
-                    );
+                    ),
+                    navigateTo: () async {
+                      // Navigate to profile completion page and await result
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => completeUserProfile(),
+                        ),
+                      );
 
-                    // If profile was updated, refresh the data
-                    if (result == true) {
-                      _loadUserData();
-                      _calculateProfileProgress(); // Explicitly recalculate progress
-                    }
-                  },
+                      // If profile was updated, refresh the data
+                      if (result == true) {
+                        _loadUserData();
+                        _calculateProfileProgress(); // Explicitly recalculate progress
+                      }
+                    },
+                  ),
                 ),
-              ),
               _sectionLabel('Manage my account', horizontalMargin),
               _settingsCard([
                 _tile(
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(Icons.person_outlined),
+                      Icon(Icons.person_outlined, color: Colors.black),
                       SizedBox(width: 7.5),
                       Expanded(
                         child: Text(
                           'Personal Details',
+                          style: TextStyle(color: Colors.black),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      Icon(Icons.chevron_right_rounded),
+                      Icon(Icons.chevron_right_rounded, color: Colors.black),
                     ],
                   ),
-                  () {},
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => completeUserProfile(),
+                      ),
+                    );
+                  },
                 ),
                 _tile(
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(MdiIcons.databaseLock),
+                      Icon(MdiIcons.databaseLock, color: Colors.black),
                       SizedBox(width: 7.5),
 
                       Expanded(
                         child: Text(
                           'Edit Security Settings',
+                          style: TextStyle(color: Colors.black),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      Icon(Icons.chevron_right),
+                      Icon(Icons.chevron_right, color: Colors.black),
                     ],
                   ),
-                  () {},
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SecuritySettings(),
+                      ),
+                    );
+                  },
                 ),
               ], horizontalMargin),
               _sectionLabel('Payment Information', horizontalMargin),
@@ -344,35 +382,52 @@ class _usersProfileState extends State<usersProfile> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(Icons.wallet),
+                      Icon(Icons.wallet, color: Colors.black),
                       SizedBox(width: 7.5),
                       Expanded(
                         child: Text(
                           'Saved Payment Methods',
+                          style: TextStyle(color: Colors.black),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      Icon(Icons.chevron_right),
+                      Icon(Icons.chevron_right, color: Colors.black),
                     ],
                   ),
-                  () {},
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => PaymentMethods()),
+                    );
+                  },
                 ),
                 _tile(
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(FontAwesomeIcons.clockRotateLeft),
+                      Icon(
+                        FontAwesomeIcons.clockRotateLeft,
+                        color: Colors.black,
+                      ),
                       SizedBox(width: 7.5),
                       Expanded(
                         child: Text(
                           'View Past Transactions',
+                          style: TextStyle(color: Colors.black),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      Icon(Icons.chevron_right),
+                      Icon(Icons.chevron_right, color: Colors.black),
                     ],
                   ),
-                  () {},
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TransactionHistory(),
+                      ),
+                    );
+                  },
                 ),
               ], horizontalMargin),
               _sectionLabel('Help and Support', horizontalMargin),
@@ -381,15 +436,16 @@ class _usersProfileState extends State<usersProfile> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(FeatherIcons.phoneCall),
+                      Icon(FeatherIcons.phoneCall, color: Colors.black),
                       SizedBox(width: 7.5),
                       Expanded(
                         child: Text(
                           'Contact Customer Support',
+                          style: TextStyle(color: Colors.black),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      Icon(Icons.chevron_right),
+                      Icon(Icons.chevron_right, color: Colors.black),
                     ],
                   ),
                   () {},
@@ -398,15 +454,16 @@ class _usersProfileState extends State<usersProfile> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(FontAwesomeIcons.handshake),
+                      Icon(FontAwesomeIcons.handshake, color: Colors.black),
                       SizedBox(width: 7.5),
                       Expanded(
                         child: Text(
                           'Dispute Resolution',
+                          style: TextStyle(color: Colors.black),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      Icon(Icons.chevron_right),
+                      Icon(Icons.chevron_right, color: Colors.black),
                     ],
                   ),
                   () {},
@@ -418,15 +475,16 @@ class _usersProfileState extends State<usersProfile> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(Icons.invert_colors),
+                      Icon(Icons.invert_colors, color: Colors.black),
                       SizedBox(width: 7.5),
                       Expanded(
                         child: Text(
                           'Theme Settings',
+                          style: TextStyle(color: Colors.black),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      Icon(Icons.chevron_right),
+                      Icon(Icons.chevron_right, color: Colors.black),
                     ],
                   ),
                   () {},
@@ -435,15 +493,16 @@ class _usersProfileState extends State<usersProfile> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(Icons.edit_notifications),
+                      Icon(Icons.edit_notifications, color: Colors.black),
                       SizedBox(width: 7.5),
                       Expanded(
                         child: Text(
                           'Notification Settings',
+                          style: TextStyle(color: Colors.black),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      Icon(Icons.chevron_right),
+                      Icon(Icons.chevron_right, color: Colors.black),
                     ],
                   ),
                   () {},
@@ -455,15 +514,16 @@ class _usersProfileState extends State<usersProfile> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(MdiIcons.domainPlus),
+                      Icon(MdiIcons.domainPlus, color: Colors.black),
                       SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           'Host your property',
+                          style: TextStyle(color: Colors.black),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      Icon(Icons.chevron_right),
+                      Icon(Icons.chevron_right, color: Colors.black),
                     ],
                   ),
                   () {},
@@ -475,15 +535,16 @@ class _usersProfileState extends State<usersProfile> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(FontAwesomeIcons.scroll),
+                      Icon(FontAwesomeIcons.scroll, color: Colors.black),
                       SizedBox(width: 7.5),
                       Expanded(
                         child: Text(
+                          style: TextStyle(color: Colors.black),
                           'Privacy Policy',
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      Icon(Icons.chevron_right),
+                      Icon(Icons.chevron_right, color: Colors.black),
                     ],
                   ),
                   () {},
@@ -492,15 +553,16 @@ class _usersProfileState extends State<usersProfile> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(FontAwesomeIcons.fileShield),
+                      Icon(FontAwesomeIcons.fileShield, color: Colors.black),
                       SizedBox(width: 7.5),
                       Expanded(
                         child: Text(
                           'Terms of conditions',
+                          style: TextStyle(color: Colors.black),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      Icon(Icons.chevron_right),
+                      Icon(Icons.chevron_right, color: Colors.black),
                     ],
                   ),
                   () {},
@@ -508,15 +570,16 @@ class _usersProfileState extends State<usersProfile> {
                 _tile(
                   Row(
                     children: [
-                      Icon(FontAwesomeIcons.bookOpen),
+                      Icon(FontAwesomeIcons.bookOpen, color: Colors.black),
                       SizedBox(width: 7.5),
                       Expanded(
                         child: Text(
                           'Guidelines and Best Practices',
+                          style: TextStyle(color: Colors.black),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      Icon(Icons.chevron_right),
+                      Icon(Icons.chevron_right, color: Colors.black),
                     ],
                   ),
                   () {},
