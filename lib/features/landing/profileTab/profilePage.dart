@@ -10,6 +10,60 @@ import 'package:liontent/features/landing/profileTab/completeProfile.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
+import 'dart:math' show pi;
+
+// Custom painter for circular progress indicator
+class ProfileProgressPainter extends CustomPainter {
+  final double progress; // Value from 0.0 to 1.0
+  final Color progressColor;
+  final Color backgroundColor;
+
+  ProfileProgressPainter({
+    required this.progress,
+    required this.progressColor,
+    required this.backgroundColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 * 0.9; // Slightly smaller than container
+    final strokeWidth = 8.0;
+
+    // Draw background circle
+    final backgroundPaint =
+        Paint()
+          ..color = backgroundColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth;
+
+    canvas.drawCircle(center, radius, backgroundPaint);
+
+    // Draw progress arc
+    final progressPaint =
+        Paint()
+          ..color = progressColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth
+          ..strokeCap = StrokeCap.round;
+
+    final progressAngle = 2 * pi * progress;
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -pi / 2, // Start from top
+      progressAngle,
+      false,
+      progressPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(ProfileProgressPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.progressColor != progressColor ||
+        oldDelegate.backgroundColor != backgroundColor;
+  }
+}
 
 class usersProfile extends StatefulWidget {
   const usersProfile({super.key});
@@ -21,11 +75,22 @@ class usersProfile extends StatefulWidget {
 class _usersProfileState extends State<usersProfile> {
   String userName = "User"; // Default name
   File? _profileImage;
+  double _profileProgress = 0.0;
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+
+    // Recalculate progress every time the screen is shown
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _calculateProfileProgress();
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   // Load user data from SharedPreferences
@@ -46,7 +111,50 @@ class _usersProfileState extends State<usersProfile> {
           _profileImage = imageFile;
         }
       }
+
+      // Update progress indicator after loading data
+      _profileProgress = _calculateProfileProgress();
     });
+  }
+
+  // Calculate the profile completion percentage
+  double _calculateProfileProgress() {
+    final prefs = SharedPreferences.getInstance();
+    int filledFields = 0;
+    int totalFields =
+        12; // Total number of tracked fields including 3 emergency contacts
+
+    // This will run asynchronously, but we'll use the cached values for a quick UI update
+    prefs.then((prefs) {
+      // Basic information fields (4)
+      if ((prefs.getString('firstName') ?? '').isNotEmpty) filledFields++;
+      if ((prefs.getString('lastName') ?? '').isNotEmpty) filledFields++;
+      if ((prefs.getString('gender') ?? '').isNotEmpty) filledFields++;
+      if ((prefs.getString('dateOfBirth') ?? '').isNotEmpty) filledFields++;
+
+      // Contact information fields (3)
+      if ((prefs.getString('email') ?? '').isNotEmpty) filledFields++;
+      if ((prefs.getString('phone') ?? '').isNotEmpty) filledFields++;
+      if ((prefs.getString('address') ?? '').isNotEmpty) filledFields++;
+
+      // Additional information fields (2)
+      if ((prefs.getString('matricNumber') ?? '').isNotEmpty) filledFields++;
+      if ((prefs.getString('occupation') ?? '').isNotEmpty) filledFields++;
+
+      // Profile picture (1)
+      if (prefs.getString('profileImagePath') != null) filledFields++;
+
+      // Emergency contacts (3) - each contact counts as one field
+      final contactsJson = prefs.getStringList('emergencyContacts') ?? [];
+      filledFields += contactsJson.length > 3 ? 3 : contactsJson.length;
+
+      // Update progress
+      setState(() {
+        _profileProgress = filledFields / totalFields;
+      });
+    });
+
+    return _profileProgress; // Return current value while async operation completes
   }
 
   @override
@@ -187,6 +295,7 @@ class _usersProfileState extends State<usersProfile> {
                     // If profile was updated, refresh the data
                     if (result == true) {
                       _loadUserData();
+                      _calculateProfileProgress(); // Explicitly recalculate progress
                     }
                   },
                 ),
@@ -502,7 +611,31 @@ class _usersProfileState extends State<usersProfile> {
                 ],
               ),
             ),
-            Container(height: 80, width: 80, color: colors4Liontent.primary),
+            Container(
+              height: 80,
+              width: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+              ),
+              child: CustomPaint(
+                painter: ProfileProgressPainter(
+                  progress: _profileProgress,
+                  progressColor: colors4Liontent.primary,
+                  backgroundColor: Colors.grey[200]!,
+                ),
+                child: Center(
+                  child: Text(
+                    "${(_profileProgress * 100).toInt()}%",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: colors4Liontent.primary,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
         SizedBox(height: 40),

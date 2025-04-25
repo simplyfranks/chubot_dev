@@ -77,7 +77,7 @@ class _completeUserProfileState extends State<completeUserProfile> {
 
   // Profile image properties
   File? _profileImage;
-  bool _isLivenessVerified = false;
+
   final ImagePicker _picker = ImagePicker();
 
   @override
@@ -137,7 +137,10 @@ class _completeUserProfileState extends State<completeUserProfile> {
     // For each critical field, check if it's locked and until when
     criticalFields.forEach((field) {
       final lastEditTime = prefs.getInt('${field}LastEdit');
-      if (lastEditTime != null) {
+      final fieldValue = prefs.getString(field) ?? '';
+
+      // Only apply locks to fields that have values and have been edited before
+      if (lastEditTime != null && fieldValue.isNotEmpty) {
         final lockUntil = DateTime.fromMillisecondsSinceEpoch(
           lastEditTime,
         ).add(Duration(days: 45));
@@ -151,6 +154,7 @@ class _completeUserProfileState extends State<completeUserProfile> {
           fieldLockRemainingDays[field] = daysRemaining;
         }
       } else {
+        // If field is empty or never edited, it should not be locked
         fieldLockStatus[field] = false;
       }
     });
@@ -182,38 +186,45 @@ class _completeUserProfileState extends State<completeUserProfile> {
     }
 
     // Check which critical fields have changed and update their last edit time
-    if (prefs.getString('firstName') != firstName) {
+    // Only update last edit time for non-empty fields
+    if (prefs.getString('firstName') != firstName && firstName.isNotEmpty) {
       await prefs.setInt('firstNameLastEdit', now);
       fieldLockStatus['firstName'] = true;
     }
 
-    if (prefs.getString('lastName') != lastNameController.text.trim()) {
+    if (prefs.getString('lastName') != lastNameController.text.trim() &&
+        lastNameController.text.trim().isNotEmpty) {
       await prefs.setInt('lastNameLastEdit', now);
       fieldLockStatus['lastName'] = true;
     }
 
-    if (prefs.getString('email') != emailController.text.trim()) {
+    if (prefs.getString('email') != emailController.text.trim() &&
+        emailController.text.trim().isNotEmpty) {
       await prefs.setInt('emailLastEdit', now);
       fieldLockStatus['email'] = true;
     }
 
-    if (prefs.getString('phone') != phoneController.text.trim() ||
-        prefs.getString('countryCode') != selectedCountryCode) {
+    if ((prefs.getString('phone') != phoneController.text.trim() ||
+            prefs.getString('countryCode') != selectedCountryCode) &&
+        phoneController.text.trim().isNotEmpty) {
       await prefs.setInt('phoneLastEdit', now);
       fieldLockStatus['phone'] = true;
     }
 
-    if (prefs.getString('dateOfBirth') != dateOfBirthController.text.trim()) {
+    if (prefs.getString('dateOfBirth') != dateOfBirthController.text.trim() &&
+        dateOfBirthController.text.trim().isNotEmpty) {
       await prefs.setInt('dateOfBirthLastEdit', now);
       fieldLockStatus['dateOfBirth'] = true;
     }
 
-    if (prefs.getString('gender') != selectedGender) {
+    if (prefs.getString('gender') != selectedGender &&
+        (selectedGender?.isNotEmpty ?? false)) {
       await prefs.setInt('genderLastEdit', now);
       fieldLockStatus['gender'] = true;
     }
 
-    if (prefs.getString('matricNumber') != matricNumberController.text.trim()) {
+    if (prefs.getString('matricNumber') != matricNumberController.text.trim() &&
+        matricNumberController.text.trim().isNotEmpty) {
       await prefs.setInt('matricNumberLastEdit', now);
       fieldLockStatus['matricNumber'] = true;
     }
@@ -286,6 +297,7 @@ class _completeUserProfileState extends State<completeUserProfile> {
                 _buildWarningItem('Date of Birth'),
                 _buildWarningItem('Email'),
                 _buildWarningItem('Matric Number'),
+
                 SizedBox(height: 12),
                 Text(
                   'Please ensure all information is correct before saving.',
@@ -336,56 +348,93 @@ class _completeUserProfileState extends State<completeUserProfile> {
     );
   }
 
+  // Helper method to build info list items
+  Widget _buildInfoItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 4.0),
+            child: Icon(Icons.info_outline, size: 12, color: Colors.blue),
+          ),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 13, color: Colors.blue[700]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Load profile image from shared preferences
   Future<void> _loadProfileImage() async {
     final prefs = await SharedPreferences.getInstance();
     final imagePath = prefs.getString('profileImagePath');
-    final isVerified = prefs.getBool('isLivenessVerified') ?? false;
 
     if (imagePath != null) {
       setState(() {
         _profileImage = File(imagePath);
-        _isLivenessVerified = isVerified;
       });
     }
   }
 
-  // Show profile image options
-  void _showProfileImageOptions() {
-    showModalBottomSheet(
-      context: context,
-      builder:
-          (context) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: Icon(Icons.camera_alt),
-                title: Text('Take a photo'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _takePhoto();
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.photo_library),
-                title: Text('Choose from gallery'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImageFromGallery();
-                },
-              ),
-              if (_profileImage != null)
-                ListTile(
-                  leading: Icon(Icons.delete),
-                  title: Text('Remove current photo'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _removeProfileImage();
-                  },
-                ),
-            ],
-          ),
-    );
+  // Save profile image to shared preferences
+  Future<void> _saveProfileImage(File image) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Create a permanent copy of the image in app documents directory
+      final appDir = await getApplicationDocumentsDirectory();
+      final fileName = 'profile_${DateTime.now().millisecondsSinceEpoch}.png';
+      final savedImage = await image.copy('${appDir.path}/$fileName');
+
+      // Save the path
+      await prefs.setString('profileImagePath', savedImage.path);
+
+      setState(() {
+        _profileImage = savedImage;
+        hasChanges = true; // Mark that changes were made
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error saving image: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // Remove profile image
+  Future<void> _removeProfileImage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('profileImagePath');
+
+      setState(() {
+        _profileImage = null;
+        hasChanges = true; // Mark that changes were made
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profile picture removed'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error removing profile picture: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   // Take picture with camera
@@ -398,7 +447,7 @@ class _completeUserProfileState extends State<completeUserProfile> {
       );
 
       if (image != null) {
-        await _saveProfileImage(File(image.path), false);
+        await _saveProfileImage(File(image.path));
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Profile picture updated'),
@@ -425,7 +474,7 @@ class _completeUserProfileState extends State<completeUserProfile> {
       );
 
       if (image != null) {
-        await _saveProfileImage(File(image.path), false);
+        await _saveProfileImage(File(image.path));
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Profile picture updated'),
@@ -443,66 +492,8 @@ class _completeUserProfileState extends State<completeUserProfile> {
     }
   }
 
-  // Save profile image to shared preferences
-  Future<void> _saveProfileImage(File image, bool isVerified) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-
-      // Create a permanent copy of the image in app documents directory
-      final appDir = await getApplicationDocumentsDirectory();
-      final fileName = 'profile_${DateTime.now().millisecondsSinceEpoch}.png';
-      final savedImage = await image.copy('${appDir.path}/$fileName');
-
-      // Save the path
-      await prefs.setString('profileImagePath', savedImage.path);
-
-      setState(() {
-        _profileImage = savedImage;
-        _isLivenessVerified =
-            false; // Always set to false since we don't use liveness check
-        hasChanges = true; // Mark that changes were made
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error saving image: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  // Remove profile image
-  Future<void> _removeProfileImage() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('profileImagePath');
-      await prefs.remove('isLivenessVerified'); // Remove this too for cleanup
-
-      setState(() {
-        _profileImage = null;
-        _isLivenessVerified = false;
-        hasChanges = true; // Mark that changes were made
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile picture removed'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error removing profile picture: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
   void _initLockedStatus() {
-    // Initialize lock status for all critical fields
+    // Initialize lock status for all critical fields to false (unlocked)
     for (String field in criticalFields) {
       fieldLockStatus[field] = false;
       fieldLockRemainingDays[field] = 0;
@@ -511,6 +502,29 @@ class _completeUserProfileState extends State<completeUserProfile> {
 
   @override
   Widget build(BuildContext context) {
+    // Ensure no empty fields are locked
+    if (matricNumberController.text.isEmpty) {
+      fieldLockStatus['matricNumber'] = false;
+    }
+    if (firstNameController.text.isEmpty) {
+      fieldLockStatus['firstName'] = false;
+    }
+    if (lastNameController.text.isEmpty) {
+      fieldLockStatus['lastName'] = false;
+    }
+    if (emailController.text.isEmpty) {
+      fieldLockStatus['email'] = false;
+    }
+    if (phoneController.text.isEmpty) {
+      fieldLockStatus['phone'] = false;
+    }
+    if (dateOfBirthController.text.isEmpty) {
+      fieldLockStatus['dateOfBirth'] = false;
+    }
+    if (selectedGender == null || selectedGender!.isEmpty) {
+      fieldLockStatus['gender'] = false;
+    }
+
     return Scaffold(
       backgroundColor: colors4Liontent.pagegrey,
       appBar: AppBar(
@@ -581,28 +595,6 @@ class _completeUserProfileState extends State<completeUserProfile> {
                               ),
                             ),
                           ),
-                          if (_profileImage != null)
-                            Positioned(
-                              top: 0,
-                              right: 0,
-                              child: Container(
-                                padding: EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  color:
-                                      _isLivenessVerified
-                                          ? Colors.green
-                                          : Colors.orange,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  _isLivenessVerified
-                                      ? Icons.verified_user
-                                      : Icons.warning,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                              ),
-                            ),
                         ],
                       ),
                       SizedBox(height: 10),
@@ -613,22 +605,6 @@ class _completeUserProfileState extends State<completeUserProfile> {
                           color: Colors.grey[600],
                         ),
                       ),
-                      if (_profileImage != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Text(
-                            _isLivenessVerified
-                                ? 'Liveness verified'
-                                : 'Image not verified with liveness check',
-                            style: TextStyle(
-                              color:
-                                  _isLivenessVerified
-                                      ? Colors.green
-                                      : Colors.orange,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
                     ],
                   ),
                 ),
@@ -917,55 +893,124 @@ class _completeUserProfileState extends State<completeUserProfile> {
     bool enabled = true,
     String? tooltip,
   }) {
+    final bool isLocked = !enabled;
+    final String fieldName =
+        label
+            .split('(')[0]
+            .trim(); // Get clean field name without additional text
+    final String lockMessage =
+        isLocked
+            ? ' ($fieldName is locked for ${_getRemainingDaysText(label)})'
+            : '';
+
     final textField = Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: keyboardType,
-        validator: validator,
-        readOnly: readOnly,
-        onTap: onTap,
-        maxLines: maxLines,
-        enabled: enabled,
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: TextStyle(
-            color: enabled ? Color(0xff1c6f0f) : Colors.grey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextFormField(
+            controller: controller,
+            keyboardType: keyboardType,
+            validator: validator,
+            readOnly: readOnly,
+            onTap: onTap,
+            maxLines: maxLines,
+            enabled: enabled,
+            decoration: InputDecoration(
+              labelText: label,
+              labelStyle: TextStyle(
+                color: enabled ? Color(0xff1c6f0f) : Colors.grey,
+              ),
+              prefixIcon: Icon(
+                prefixIcon,
+                color: enabled ? colors4Liontent.primary : Colors.grey,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(
+                  color: colors4Liontent.primary,
+                  width: 2,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey),
+              ),
+              disabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+              contentPadding: EdgeInsets.symmetric(
+                vertical: 15,
+                horizontal: 15,
+              ),
+              filled: true,
+              fillColor: enabled ? Colors.white : Colors.grey.shade100,
+              suffixIcon:
+                  !enabled
+                      ? Icon(Icons.lock, color: Colors.red[300], size: 18)
+                      : null,
+            ),
           ),
-          prefixIcon: Icon(
-            prefixIcon,
-            color: enabled ? colors4Liontent.primary : Colors.grey,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Colors.grey),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: colors4Liontent.primary, width: 2),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Colors.grey),
-          ),
-          disabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-          contentPadding: EdgeInsets.symmetric(vertical: 15, horizontal: 15),
-          filled: true,
-          fillColor: enabled ? Colors.white : Colors.grey.shade100,
-          suffixIcon:
-              !enabled ? Icon(Icons.lock, color: Colors.grey, size: 18) : null,
-        ),
+          if (isLocked)
+            Padding(
+              padding: const EdgeInsets.only(top: 4.0, left: 8.0),
+              child: Row(
+                children: [
+                  Icon(Icons.timer, size: 14, color: Colors.orange[700]),
+                  SizedBox(width: 4),
+                  Text(
+                    _getRemainingDaysText(label),
+                    style: TextStyle(
+                      color: Colors.orange[700],
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
 
     if (tooltip != null && !enabled) {
-      return Tooltip(message: tooltip, child: textField);
+      return Tooltip(message: tooltip + lockMessage, child: textField);
     }
 
     return textField;
+  }
+
+  // Get remaining days text based on field name
+  String _getRemainingDaysText(String fieldLabel) {
+    String fieldKey = '';
+
+    // Map label to field key
+    if (fieldLabel.contains('First Name'))
+      fieldKey = 'firstName';
+    else if (fieldLabel.contains('Last Name'))
+      fieldKey = 'lastName';
+    else if (fieldLabel.contains('Email'))
+      fieldKey = 'email';
+    else if (fieldLabel.contains('Phone'))
+      fieldKey = 'phone';
+    else if (fieldLabel.contains('Date of Birth'))
+      fieldKey = 'dateOfBirth';
+    else if (fieldLabel.contains('Gender'))
+      fieldKey = 'gender';
+    else if (fieldLabel.contains('Matric'))
+      fieldKey = 'matricNumber';
+
+    // Get days remaining
+    final days = fieldLockRemainingDays[fieldKey] ?? 0;
+
+    if (days <= 0) return "Unlocking soon";
+    if (days == 1) return "1 day remaining";
+    return "$days days remaining";
   }
 
   // Helper method to build dropdown fields
@@ -977,57 +1022,98 @@ class _completeUserProfileState extends State<completeUserProfile> {
     required Function(String?)? onChanged,
     String? tooltip,
   }) {
+    final bool isLocked = onChanged == null;
+    final String fieldName = label.split('(')[0].trim();
+    final String lockMessage =
+        isLocked
+            ? ' ($fieldName is locked for ${_getRemainingDaysText(label)})'
+            : '';
+
     final dropdownField = Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
-      child: DropdownButtonFormField<String>(
-        value: value,
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: TextStyle(
-            color: onChanged != null ? Color(0xff1c6f0f) : Colors.grey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DropdownButtonFormField<String>(
+            value: value,
+            decoration: InputDecoration(
+              labelText: label,
+              labelStyle: TextStyle(
+                color: onChanged != null ? Color(0xff1c6f0f) : Colors.grey,
+              ),
+              prefixIcon: Icon(
+                prefixIcon,
+                color:
+                    onChanged != null ? colors4Liontent.primary : Colors.grey,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(
+                  color: colors4Liontent.primary,
+                  width: 2,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey),
+              ),
+              disabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+              contentPadding: EdgeInsets.symmetric(
+                vertical: 15,
+                horizontal: 15,
+              ),
+              filled: true,
+              fillColor:
+                  onChanged != null ? Colors.white : Colors.grey.shade100,
+              suffixIcon:
+                  onChanged == null
+                      ? Icon(Icons.lock, color: Colors.red[300], size: 18)
+                      : null,
+            ),
+            items:
+                items.map((String item) {
+                  return DropdownMenuItem<String>(
+                    value: item,
+                    child: Text(item),
+                  );
+                }).toList(),
+            onChanged: onChanged,
+            icon: Icon(
+              Icons.arrow_drop_down,
+              color: onChanged != null ? colors4Liontent.primary : Colors.grey,
+            ),
           ),
-          prefixIcon: Icon(
-            prefixIcon,
-            color: onChanged != null ? colors4Liontent.primary : Colors.grey,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Colors.grey),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: colors4Liontent.primary, width: 2),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Colors.grey),
-          ),
-          disabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-          contentPadding: EdgeInsets.symmetric(vertical: 15, horizontal: 15),
-          filled: true,
-          fillColor: onChanged != null ? Colors.white : Colors.grey.shade100,
-          suffixIcon:
-              onChanged == null
-                  ? Icon(Icons.lock, color: Colors.grey, size: 18)
-                  : null,
-        ),
-        items:
-            items.map((String item) {
-              return DropdownMenuItem<String>(value: item, child: Text(item));
-            }).toList(),
-        onChanged: onChanged,
-        icon: Icon(
-          Icons.arrow_drop_down,
-          color: onChanged != null ? colors4Liontent.primary : Colors.grey,
-        ),
+          if (isLocked)
+            Padding(
+              padding: const EdgeInsets.only(top: 4.0, left: 8.0),
+              child: Row(
+                children: [
+                  Icon(Icons.timer, size: 14, color: Colors.orange[700]),
+                  SizedBox(width: 4),
+                  Text(
+                    _getRemainingDaysText(label),
+                    style: TextStyle(
+                      color: Colors.orange[700],
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
 
     if (tooltip != null && onChanged == null) {
-      return Tooltip(message: tooltip, child: dropdownField);
+      return Tooltip(message: tooltip + lockMessage, child: dropdownField);
     }
 
     return dropdownField;
@@ -1036,125 +1122,160 @@ class _completeUserProfileState extends State<completeUserProfile> {
   // Build phone number field with country code
   Widget _buildPhoneNumberField() {
     final bool isPhoneLocked = fieldLockStatus['phone'] ?? false;
+    final String lockMessage =
+        isPhoneLocked
+            ? ' (Phone Number is locked for ${_getRemainingDaysText("Phone Number")})'
+            : '';
     final phoneTooltip =
         isPhoneLocked
-            ? 'This field cannot be edited for ${fieldLockRemainingDays['phone']} more days'
+            ? 'This field cannot be edited for ${fieldLockRemainingDays["phone"]} more days'
             : null;
 
     final phoneField = Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isPhoneLocked ? Colors.grey.shade100 : Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isPhoneLocked ? Colors.grey.shade300 : Colors.grey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: isPhoneLocked ? Colors.grey.shade100 : Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isPhoneLocked ? Colors.grey.shade300 : Colors.grey,
+              ),
+            ),
+            child: Row(
+              children: [
+                // Country code dropdown (smaller width)
+                SizedBox(
+                  width: 90,
+                  child: DropdownButtonHideUnderline(
+                    child: ButtonTheme(
+                      alignedDropdown: true,
+                      child: DropdownButton<String>(
+                        value: selectedCountryCode,
+                        icon: Icon(
+                          Icons.arrow_drop_down,
+                          color:
+                              isPhoneLocked
+                                  ? Colors.grey
+                                  : colors4Liontent.primary,
+                          size: 20,
+                        ),
+                        iconSize: 20,
+                        elevation: 16,
+                        isDense: true,
+                        style: TextStyle(
+                          color: isPhoneLocked ? Colors.grey : Colors.black,
+                          fontSize: 14,
+                        ),
+                        onChanged:
+                            isPhoneLocked
+                                ? null
+                                : (String? newValue) {
+                                  setState(() {
+                                    selectedCountryCode = newValue!;
+                                    hasChanges = true;
+                                  });
+                                },
+                        items:
+                            countryCodes.map<DropdownMenuItem<String>>((
+                              Map<String, String> country,
+                            ) {
+                              return DropdownMenuItem<String>(
+                                value: country['code'],
+                                child: Text(
+                                  country['code']!,
+                                  style: TextStyle(fontSize: 14),
+                                ),
+                              );
+                            }).toList(),
+                        dropdownColor: Colors.white,
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Vertical divider
+                Container(height: 30, width: 1, color: Colors.grey.shade300),
+
+                // Phone number input
+                Expanded(
+                  child: TextFormField(
+                    controller: phoneController,
+                    keyboardType: TextInputType.phone,
+                    maxLength: 11,
+                    enabled: !isPhoneLocked,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your phone number';
+                      }
+                      if (value.length < 10 || value.length > 11) {
+                        return 'Phone number must be 10-11 digits';
+                      }
+                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                        return 'Only numbers allowed';
+                      }
+                      return null;
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Phone Number',
+                      labelStyle: TextStyle(
+                        color: isPhoneLocked ? Colors.grey : Color(0xff1c6f0f),
+                      ),
+                      prefixIcon: Icon(
+                        Icons.phone_outlined,
+                        color:
+                            isPhoneLocked
+                                ? Colors.grey
+                                : colors4Liontent.primary,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(
+                        vertical: 15,
+                        horizontal: 15,
+                      ),
+                      counterText: '',
+                      hintText: 'e.g. 8012345678',
+                      suffixIcon:
+                          isPhoneLocked
+                              ? Icon(
+                                Icons.lock,
+                                color: Colors.red[300],
+                                size: 18,
+                              )
+                              : null,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        child: Row(
-          children: [
-            // Country code dropdown (smaller width)
-            SizedBox(
-              width: 90,
-              child: DropdownButtonHideUnderline(
-                child: ButtonTheme(
-                  alignedDropdown: true,
-                  child: DropdownButton<String>(
-                    value: selectedCountryCode,
-                    icon: Icon(
-                      Icons.arrow_drop_down,
-                      color:
-                          isPhoneLocked ? Colors.grey : colors4Liontent.primary,
-                      size: 20,
-                    ),
-                    iconSize: 20,
-                    elevation: 16,
-                    isDense: true,
+          if (isPhoneLocked)
+            Padding(
+              padding: const EdgeInsets.only(top: 4.0, left: 8.0),
+              child: Row(
+                children: [
+                  Icon(Icons.timer, size: 14, color: Colors.orange[700]),
+                  SizedBox(width: 4),
+                  Text(
+                    _getRemainingDaysText("Phone Number"),
                     style: TextStyle(
-                      color: isPhoneLocked ? Colors.grey : Colors.black,
-                      fontSize: 14,
+                      color: Colors.orange[700],
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
                     ),
-                    onChanged:
-                        isPhoneLocked
-                            ? null
-                            : (String? newValue) {
-                              setState(() {
-                                selectedCountryCode = newValue!;
-                                hasChanges = true;
-                              });
-                            },
-                    items:
-                        countryCodes.map<DropdownMenuItem<String>>((
-                          Map<String, String> country,
-                        ) {
-                          return DropdownMenuItem<String>(
-                            value: country['code'],
-                            child: Text(
-                              country['code']!,
-                              style: TextStyle(fontSize: 14),
-                            ),
-                          );
-                        }).toList(),
-                    dropdownColor: Colors.white,
-                    padding: EdgeInsets.symmetric(horizontal: 8),
                   ),
-                ),
+                ],
               ),
             ),
-
-            // Vertical divider
-            Container(height: 30, width: 1, color: Colors.grey.shade300),
-
-            // Phone number input
-            Expanded(
-              child: TextFormField(
-                controller: phoneController,
-                keyboardType: TextInputType.phone,
-                maxLength: 11,
-                enabled: !isPhoneLocked,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your phone number';
-                  }
-                  if (value.length < 10 || value.length > 11) {
-                    return 'Phone number must be 10-11 digits';
-                  }
-                  if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                    return 'Only numbers allowed';
-                  }
-                  return null;
-                },
-                decoration: InputDecoration(
-                  labelText: 'Phone Number',
-                  labelStyle: TextStyle(
-                    color: isPhoneLocked ? Colors.grey : Color(0xff1c6f0f),
-                  ),
-                  prefixIcon: Icon(
-                    Icons.phone_outlined,
-                    color:
-                        isPhoneLocked ? Colors.grey : colors4Liontent.primary,
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(
-                    vertical: 15,
-                    horizontal: 15,
-                  ),
-                  counterText: '',
-                  hintText: 'e.g. 8012345678',
-                  suffixIcon:
-                      isPhoneLocked
-                          ? Icon(Icons.lock, color: Colors.grey, size: 18)
-                          : null,
-                ),
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
 
     if (phoneTooltip != null && isPhoneLocked) {
-      return Tooltip(message: phoneTooltip, child: phoneField);
+      return Tooltip(message: phoneTooltip + lockMessage, child: phoneField);
     }
 
     return phoneField;
@@ -1698,6 +1819,44 @@ class _completeUserProfileState extends State<completeUserProfile> {
           },
         ) ??
         false; // Default to false if dialog is dismissed
+  }
+
+  // Show profile image options
+  void _showProfileImageOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder:
+          (context) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.camera_alt),
+                title: Text('Take a photo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _takePhoto();
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.photo_library),
+                title: Text('Choose from gallery'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImageFromGallery();
+                },
+              ),
+              if (_profileImage != null)
+                ListTile(
+                  leading: Icon(Icons.delete),
+                  title: Text('Remove current photo'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _removeProfileImage();
+                  },
+                ),
+            ],
+          ),
+    );
   }
 }
 
