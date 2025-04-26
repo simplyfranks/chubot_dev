@@ -6,6 +6,8 @@ import 'package:line_icons/line_icon.dart';
 import 'package:line_icons/line_icons.dart';
 import 'package:liontent/core/constants/colors.dart';
 import 'package:liontent/core/widgets/buttons.dart';
+import 'package:liontent/features/landing/profileTab/customer_support.dart';
+import 'package:liontent/features/landing/profileTab/dispute_resolution.dart';
 import 'package:liontent/features/landing/profileTab/payment_methods.dart';
 import 'package:liontent/features/landing/profileTab/transaction_history.dart';
 import 'package:liontent/features/landing/profileTab/userDetails.dart';
@@ -448,7 +450,14 @@ class _usersProfileState extends State<usersProfile> {
                       Icon(Icons.chevron_right, color: Colors.black),
                     ],
                   ),
-                  () {},
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CustomerService(),
+                      ),
+                    );
+                  },
                 ),
                 _tile(
                   Row(
@@ -466,7 +475,14 @@ class _usersProfileState extends State<usersProfile> {
                       Icon(Icons.chevron_right, color: Colors.black),
                     ],
                   ),
-                  () {},
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DisputeResolution(),
+                      ),
+                    );
+                  },
                 ),
               ], horizontalMargin),
               _sectionLabel('User Preferences', horizontalMargin),
@@ -557,7 +573,7 @@ class _usersProfileState extends State<usersProfile> {
                       SizedBox(width: 7.5),
                       Expanded(
                         child: Text(
-                          'Terms of conditions',
+                          'Terms and conditions',
                           style: TextStyle(color: Colors.black),
                           overflow: TextOverflow.ellipsis,
                         ),
