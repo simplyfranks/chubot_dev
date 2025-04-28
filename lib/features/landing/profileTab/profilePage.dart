@@ -6,12 +6,18 @@ import 'package:line_icons/line_icon.dart';
 import 'package:line_icons/line_icons.dart';
 import 'package:liontent/core/constants/colors.dart';
 import 'package:liontent/core/widgets/buttons.dart';
+import 'package:liontent/features/landing/profileTab/best_practices.dart';
 import 'package:liontent/features/landing/profileTab/customer_support.dart';
 import 'package:liontent/features/landing/profileTab/dispute_resolution.dart';
+import 'package:liontent/features/landing/profileTab/hosting.dart';
+import 'package:liontent/features/landing/profileTab/notification_settings.dart';
 import 'package:liontent/features/landing/profileTab/payment_methods.dart';
+import 'package:liontent/features/landing/profileTab/privacy.dart';
+import 'package:liontent/features/landing/profileTab/terms_of_conditions.dart';
 import 'package:liontent/features/landing/profileTab/transaction_history.dart';
 import 'package:liontent/features/landing/profileTab/userDetails.dart';
 import 'package:liontent/features/landing/profileTab/user_security.dart';
+import 'package:liontent/features/landing/profileTab/user_theme.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
@@ -503,7 +509,12 @@ class _usersProfileState extends State<usersProfile> {
                       Icon(Icons.chevron_right, color: Colors.black),
                     ],
                   ),
-                  () {},
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => UserTheme()),
+                    );
+                  },
                 ),
                 _tile(
                   Row(
@@ -521,7 +532,14 @@ class _usersProfileState extends State<usersProfile> {
                       Icon(Icons.chevron_right, color: Colors.black),
                     ],
                   ),
-                  () {},
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => NotificationSettings(),
+                      ),
+                    );
+                  },
                 ),
               ], horizontalMargin),
               _sectionLabel('Partnership Programs', horizontalMargin),
@@ -542,7 +560,12 @@ class _usersProfileState extends State<usersProfile> {
                       Icon(Icons.chevron_right, color: Colors.black),
                     ],
                   ),
-                  () {},
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Hosting()),
+                    );
+                  },
                 ),
               ], horizontalMargin),
               _sectionLabel('Legal and Privacy', horizontalMargin),
@@ -563,7 +586,12 @@ class _usersProfileState extends State<usersProfile> {
                       Icon(Icons.chevron_right, color: Colors.black),
                     ],
                   ),
-                  () {},
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Privacy()),
+                    );
+                  },
                 ),
                 _tile(
                   Row(
@@ -581,7 +609,14 @@ class _usersProfileState extends State<usersProfile> {
                       Icon(Icons.chevron_right, color: Colors.black),
                     ],
                   ),
-                  () {},
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TermsOfCondition(),
+                      ),
+                    );
+                  },
                 ),
                 _tile(
                   Row(
@@ -598,7 +633,12 @@ class _usersProfileState extends State<usersProfile> {
                       Icon(Icons.chevron_right, color: Colors.black),
                     ],
                   ),
-                  () {},
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => BestPractices()),
+                    );
+                  },
                 ),
               ], horizontalMargin),
               // _settingsCard([
