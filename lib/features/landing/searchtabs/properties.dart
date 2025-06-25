@@ -253,7 +253,7 @@ class _propertiesTabContentState extends State<propertiesTabContent> {
         ),
         borderRadius: BorderRadius.circular(0),
       ),
-      child: Container(
+      child: SizedBox(
         height: 50,
         child: InkWell(
           onTap: () {
@@ -279,34 +279,32 @@ class _propertiesTabContentState extends State<propertiesTabContent> {
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              ...items
-                                  .map(
-                                    (item) => ListTile(
-                                      dense: true,
-                                      contentPadding: EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                      ),
-                                      title: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: List.generate(5, (index) {
-                                          final starCount = int.parse(item);
-                                          return Icon(
-                                            Icons.star,
-                                            size: 20,
-                                            color:
-                                                index < starCount
-                                                    ? Colors.amber
-                                                    : Colors.grey[300],
-                                          );
-                                        }),
-                                      ),
-                                      onTap: () {
-                                        onChanged(item);
-                                        Navigator.pop(context);
-                                      },
-                                    ),
-                                  )
-                                  .toList(),
+                              ...items.map(
+                                (item) => ListTile(
+                                  dense: true,
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                  ),
+                                  title: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: List.generate(5, (index) {
+                                      final starCount = int.parse(item);
+                                      return Icon(
+                                        Icons.star,
+                                        size: 20,
+                                        color:
+                                            index < starCount
+                                                ? Colors.amber
+                                                : Colors.grey[300],
+                                      );
+                                    }),
+                                  ),
+                                  onTap: () {
+                                    onChanged(item);
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -335,17 +333,15 @@ class _propertiesTabContentState extends State<propertiesTabContent> {
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              ...items
-                                  .map(
-                                    (item) => ListTile(
-                                      title: Text(item),
-                                      onTap: () {
-                                        onChanged(item);
-                                        Navigator.pop(context);
-                                      },
-                                    ),
-                                  )
-                                  .toList(),
+                              ...items.map(
+                                (item) => ListTile(
+                                  title: Text(item),
+                                  onTap: () {
+                                    onChanged(item);
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -428,42 +424,36 @@ class _propertiesTabContentState extends State<propertiesTabContent> {
                                         ),
                                       ),
                                       SizedBox(height: 8),
-                                      ...items
-                                          .map(
-                                            (item) => Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    vertical: 4,
-                                                  ),
-                                              child: Row(
-                                                children: [
-                                                  ...List.generate(5, (index) {
-                                                    final starCount = int.parse(
-                                                      item,
-                                                    );
-                                                    return Icon(
-                                                      Icons.star,
-                                                      size: 16,
-                                                      color:
-                                                          index < starCount
-                                                              ? Colors.amber
-                                                              : Colors
-                                                                  .grey[300],
-                                                    );
-                                                  }),
-                                                  SizedBox(width: 8),
-                                                  Text(
-                                                    conditionDescriptions[item] ??
-                                                        '',
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                    ),
-                                                  ),
-                                                ],
+                                      ...items.map(
+                                        (item) => Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 4,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              ...List.generate(5, (index) {
+                                                final starCount = int.parse(
+                                                  item,
+                                                );
+                                                return Icon(
+                                                  Icons.star,
+                                                  size: 16,
+                                                  color:
+                                                      index < starCount
+                                                          ? Colors.amber
+                                                          : Colors.grey[300],
+                                                );
+                                              }),
+                                              SizedBox(width: 8),
+                                              Text(
+                                                conditionDescriptions[item] ??
+                                                    '',
+                                                style: TextStyle(fontSize: 12),
                                               ),
-                                            ),
-                                          )
-                                          .toList(),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),

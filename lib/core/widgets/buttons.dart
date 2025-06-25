@@ -15,16 +15,16 @@ class lengthButton1Light extends StatelessWidget {
   Widget build(BuildContext context) {
     return ElevatedButton(
       onPressed: navigateTo,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: colors4Liontent.primary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
+      ),
       child: Center(
         child: widgetchoice,
         // child: Text(
         //   buttonTitle,
         //   style: TextStyle(fontSize: 16, color: colors4Liontent.secondary),
         // ),
-      ),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: colors4Liontent.primary,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
       ),
     );
   }
@@ -44,7 +44,6 @@ class lengthButton1Transp extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextButton(
       onPressed: navigateTo,
-      child: Center(child: widgetchoice),
       style: TextButton.styleFrom(
         backgroundColor: Colors.transparent,
         shape: RoundedRectangleBorder(
@@ -52,6 +51,7 @@ class lengthButton1Transp extends StatelessWidget {
           borderRadius: BorderRadius.circular(7),
         ),
       ),
+      child: Center(child: widgetchoice),
     );
   }
 }
@@ -70,7 +70,6 @@ class lengthButton1TranspOutline extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextButton(
       onPressed: navigateTo,
-      child: Center(child: widgetchoice),
       style: TextButton.styleFrom(
         backgroundColor: Colors.transparent,
         shape: RoundedRectangleBorder(
@@ -78,6 +77,7 @@ class lengthButton1TranspOutline extends StatelessWidget {
           borderRadius: BorderRadius.circular(7),
         ),
       ),
+      child: Center(child: widgetchoice),
     );
   }
 }
@@ -96,11 +96,11 @@ class shortButton1Light extends StatelessWidget {
   Widget build(BuildContext context) {
     return ElevatedButton(
       onPressed: navigateTo,
-      child: widgetchoice,
       style: ElevatedButton.styleFrom(
         backgroundColor: colors4Liontent.primary,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
       ),
+      child: widgetchoice,
     );
   }
 }
@@ -119,7 +119,6 @@ class lengthButton1White extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextButton(
       onPressed: navigateTo,
-      child: Center(child: widgetchoice),
       style: TextButton.styleFrom(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
@@ -127,6 +126,7 @@ class lengthButton1White extends StatelessWidget {
           borderRadius: BorderRadius.circular(7),
         ),
       ),
+      child: Center(child: widgetchoice),
     );
   }
 }

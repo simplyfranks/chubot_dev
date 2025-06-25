@@ -675,7 +675,6 @@ class _usersProfileState extends State<usersProfile> {
   Widget _tile(Widget widgetchoice, VoidCallback navigateTo) {
     return TextButton(
       onPressed: navigateTo,
-      child: widgetchoice,
       style: TextButton.styleFrom(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
@@ -683,6 +682,7 @@ class _usersProfileState extends State<usersProfile> {
           borderRadius: BorderRadius.circular(7),
         ),
       ),
+      child: widgetchoice,
     );
   }
   // => lengthButton1White(

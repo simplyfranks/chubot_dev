@@ -9,6 +9,18 @@ PreferredSize customAppBar1({required VoidCallback closeOpera}) {
   return PreferredSize(
     preferredSize: const Size.fromHeight(50),
     child: Container(
+      decoration: BoxDecoration(
+        color: colors4Liontent.primary,
+        /*border: Border(bottom: BorderSide(color: Colors.black, width: 0.5), ),*/ boxShadow:
+            [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                spreadRadius: 1,
+                blurRadius: 5,
+                offset: const Offset(0, 3), // changes position of shadow
+              ),
+            ],
+      ),
       child: Row(
         children: [
           IconButton(
@@ -44,25 +56,13 @@ PreferredSize customAppBar1({required VoidCallback closeOpera}) {
           Expanded(child: SizedBox(), flex: 3),
         ],
       ),
-      decoration: BoxDecoration(
-        color: colors4Liontent.primary,
-        /*border: Border(bottom: BorderSide(color: Colors.black, width: 0.5), ),*/ boxShadow:
-            [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                spreadRadius: 1,
-                blurRadius: 5,
-                offset: const Offset(0, 3), // changes position of shadow
-              ),
-            ],
-      ),
     ),
   );
 }
 
 class searchAppBar extends StatefulWidget {
   final TabController searchcontroller4bar;
-  searchAppBar({super.key, required this.searchcontroller4bar});
+  const searchAppBar({super.key, required this.searchcontroller4bar});
 
   @override
   State<searchAppBar> createState() => _searchAppBarState();
@@ -129,7 +129,7 @@ Widget _appBarTitle() {
       Expanded(
         child: Row(
           children: [
-            Expanded(child: SizedBox(), flex: 9),
+            Expanded(flex: 9, child: SizedBox()),
             Expanded(
               flex: 12,
               child: Align(
@@ -202,6 +202,18 @@ PreferredSize customAppBar2({required String bartitle}) {
     preferredSize: const Size.fromHeight(100),
     child: Container(
       padding: EdgeInsets.only(left: 20, right: 15),
+      decoration: BoxDecoration(
+        color: colors4Liontent.primary,
+        /*border: Border(bottom: BorderSide(color: Colors.black, width: 0.5), ),*/ boxShadow:
+            [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                spreadRadius: 1,
+                blurRadius: 5,
+                offset: const Offset(0, 3), // changes position of shadow
+              ),
+            ],
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -219,18 +231,6 @@ PreferredSize customAppBar2({required String bartitle}) {
             icon: Icon(Icons.add, size: 30, color: colors4Liontent.secondary),
           ),
         ],
-      ),
-      decoration: BoxDecoration(
-        color: colors4Liontent.primary,
-        /*border: Border(bottom: BorderSide(color: Colors.black, width: 0.5), ),*/ boxShadow:
-            [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                spreadRadius: 1,
-                blurRadius: 5,
-                offset: const Offset(0, 3), // changes position of shadow
-              ),
-            ],
       ),
     ),
   );

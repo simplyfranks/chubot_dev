@@ -5,6 +5,8 @@ import 'package:liontent/features/authentication/continue_email.dart';
 import 'package:liontent/features/landing/landing_search.dart';
 import 'package:liontent/features/landing/profileTab/userDetails.dart';
 import 'package:liontent/features/landing/profileTab/user_security.dart';
+import 'package:liontent/features/landing/searchtabs/lodgesTab/lodgeCardCont.dart';
+
 import 'package:liontent/features/landing/searchtabs/searchTab.dart';
 import 'package:liontent/features/landing/searchtabs/properties.dart';
 
@@ -13,7 +15,7 @@ import 'package:liontent/features/splash/splashscreen.dart';
 
 void main(List<String> args) {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const liontent());
+  runApp(const MyApp());
   SystemChrome.setSystemUIOverlayStyle(
     SystemUiOverlayStyle(
       statusBarColor: colors4Liontent.primary,
@@ -22,15 +24,18 @@ void main(List<String> args) {
   );
 }
 
-class liontent extends StatelessWidget {
-  const liontent({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: landingPageSearch(),
+        home: LodgeDetailsPage(
+          lodgeName: 'kenechukwu lodge',
+          leadingImgUrl: '',
+        ),
       ),
     );
   }

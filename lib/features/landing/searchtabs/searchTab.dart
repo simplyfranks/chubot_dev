@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:liontent/core/widgets/appbar.dart';
-import 'package:liontent/features/landing/searchtabs/lodges.dart';
+import 'package:liontent/features/landing/searchtabs/lodgesTab/lodges.dart';
 import 'package:liontent/features/landing/searchtabs/properties.dart';
 import 'package:liontent/features/landing/searchtabs/taxi.dart';
 

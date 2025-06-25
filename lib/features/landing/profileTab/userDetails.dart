@@ -135,7 +135,7 @@ class _completeUserProfileState extends State<completeUserProfile> {
     final prefs = await SharedPreferences.getInstance();
 
     // For each critical field, check if it's locked and until when
-    criticalFields.forEach((field) {
+    for (var field in criticalFields) {
       final lastEditTime = prefs.getInt('${field}LastEdit');
       final fieldValue = prefs.getString(field) ?? '';
 
@@ -157,7 +157,7 @@ class _completeUserProfileState extends State<completeUserProfile> {
         // If field is empty or never edited, it should not be locked
         fieldLockStatus[field] = false;
       }
-    });
+    }
   }
 
   // Dedicated method to load emergency contacts
@@ -795,7 +795,7 @@ class _completeUserProfileState extends State<completeUserProfile> {
                 SizedBox(height: 32),
 
                 // Save Button
-                Container(
+                SizedBox(
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
@@ -990,9 +990,9 @@ class _completeUserProfileState extends State<completeUserProfile> {
     String fieldKey = '';
 
     // Map label to field key
-    if (fieldLabel.contains('First Name'))
+    if (fieldLabel.contains('First Name')) {
       fieldKey = 'firstName';
-    else if (fieldLabel.contains('Last Name'))
+    } else if (fieldLabel.contains('Last Name'))
       fieldKey = 'lastName';
     else if (fieldLabel.contains('Email'))
       fieldKey = 'email';
@@ -1430,7 +1430,7 @@ class _completeUserProfileState extends State<completeUserProfile> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // Country code dropdown
-                            Container(
+                            SizedBox(
                               width: 100,
                               child: DropdownButtonFormField<String>(
                                 value: contactCountryCode,
@@ -1670,7 +1670,7 @@ class _completeUserProfileState extends State<completeUserProfile> {
               ),
             ),
           );
-        }).toList(),
+        }),
         if (emergencyContacts.isEmpty)
           Container(
             width: double.infinity,
@@ -1704,18 +1704,22 @@ class _completeUserProfileState extends State<completeUserProfile> {
   Future<bool> _hasCriticalFieldChanges() async {
     final prefs = await SharedPreferences.getInstance();
 
-    if (prefs.getString('firstName') != firstNameController.text.trim())
+    if (prefs.getString('firstName') != firstNameController.text.trim()) {
       return true;
-    if (prefs.getString('lastName') != lastNameController.text.trim())
+    }
+    if (prefs.getString('lastName') != lastNameController.text.trim()) {
       return true;
+    }
     if (prefs.getString('email') != emailController.text.trim()) return true;
     if (prefs.getString('phone') != phoneController.text.trim()) return true;
     if (prefs.getString('countryCode') != selectedCountryCode) return true;
-    if (prefs.getString('dateOfBirth') != dateOfBirthController.text.trim())
+    if (prefs.getString('dateOfBirth') != dateOfBirthController.text.trim()) {
       return true;
+    }
     if (prefs.getString('gender') != selectedGender) return true;
-    if (prefs.getString('matricNumber') != matricNumberController.text.trim())
+    if (prefs.getString('matricNumber') != matricNumberController.text.trim()) {
       return true;
+    }
 
     return false;
   }

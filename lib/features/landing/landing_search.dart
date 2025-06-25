@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:liontent/core/constants/colors.dart';
-import 'package:liontent/core/widgets/appbar.dart';
 import 'package:liontent/features/landing/bookedPage.dart';
 import 'package:liontent/features/landing/profileTab/profilePage.dart';
 import 'package:liontent/features/landing/savedPage.dart';

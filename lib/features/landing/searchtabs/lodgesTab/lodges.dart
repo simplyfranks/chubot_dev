@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:liontent/core/constants/colors.dart';
+import 'package:liontent/features/landing/searchtabs/lodgesTab/lodgeCardCont.dart';
 
 class lodgesTabContent extends StatefulWidget {
   const lodgesTabContent({super.key});
@@ -271,17 +272,15 @@ class _lodgesTabContentState extends State<lodgesTabContent> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          ...items
-                              .map(
-                                (item) => ListTile(
-                                  title: Text(item),
-                                  onTap: () {
-                                    onChanged(item);
-                                    Navigator.pop(context);
-                                  },
-                                ),
-                              )
-                              .toList(),
+                          ...items.map(
+                            (item) => ListTile(
+                              title: Text(item),
+                              onTap: () {
+                                onChanged(item);
+                                Navigator.pop(context);
+                              },
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -489,77 +488,110 @@ class LodgeCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Image
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-            child: Image.network(
-              imageUrl,
-              height: 150,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  height: 150,
-                  color: Colors.grey[200],
-                  child: const Icon(Icons.image_not_supported, size: 50),
-                );
-              },
+      child: MaterialButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (context) => LodgeDetailsPage(
+                    lodgeName: name,
+                    leadingImgUrl: imageUrl,
+                  ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Lodge Name
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-                // Price
-                Text(
-                  '₦${NumberFormat('#,###').format(price)}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: colors4Liontent.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                // Rating
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    ...List.generate(5, (index) {
-                      return Icon(
-                        Icons.star,
-                        size: 16,
-                        color:
-                            index < rating.floor()
-                                ? Colors.amber
-                                : Colors.grey[300],
-                      );
-                    }),
-                    const SizedBox(width: 5),
-                    Text(
-                      rating.toStringAsFixed(1),
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          );
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(12),
+              ),
+              child: Image.network(
+                imageUrl,
+                height: 150,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    height: 150,
+                    color: Colors.grey[200],
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        value:
+                            loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                : null,
+                        color: colors4Liontent.primary,
+                      ),
                     ),
-                  ],
-                ),
-              ],
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 150,
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.image_not_supported, size: 50),
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Lodge Name
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  // Price
+                  Text(
+                    '₦${NumberFormat('#,###').format(price)}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: colors4Liontent.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Rating
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      ...List.generate(5, (index) {
+                        return Icon(
+                          Icons.star,
+                          size: 16,
+                          color:
+                              index < rating.floor()
+                                  ? Colors.amber
+                                  : Colors.grey[300],
+                        );
+                      }),
+                      const SizedBox(width: 5),
+                      Text(
+                        rating.toStringAsFixed(1),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

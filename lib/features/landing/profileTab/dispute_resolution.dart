@@ -921,7 +921,6 @@ class _DisputeResolutionState extends State<DisputeResolution>
                         if (!isResolved)
                           OutlinedButton(
                             onPressed: () {},
-                            child: Text('Update'),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: colors4Liontent.primary,
                               side: BorderSide(color: colors4Liontent.primary),
@@ -933,6 +932,7 @@ class _DisputeResolutionState extends State<DisputeResolution>
                                 borderRadius: BorderRadius.circular(6),
                               ),
                             ),
+                            child: Text('Update'),
                           ),
                       ],
                     ),

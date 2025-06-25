@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:liontent/core/constants/colors.dart';
 import 'package:liontent/core/widgets/appbar.dart';
 import 'package:liontent/core/widgets/buttons.dart';
-import 'package:liontent/core/widgets/textfields.dart';
 import 'package:liontent/features/landing/landing_search.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

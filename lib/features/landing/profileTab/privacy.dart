@@ -1,14 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:liontent/core/constants/colors.dart';
 import 'package:liontent/core/widgets/buttons.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/services.dart' show rootBundle;
 
 class Privacy extends StatelessWidget {
   const Privacy({super.key});
 
+  Future<void> _generateAndSharePDF() async {
+    try {
+      // Get the PDF file from assets
+      final ByteData data = await rootBundle.load(
+        'assets/docs/privacy_policy.pdf',
+      );
+      final bytes = data.buffer.asUint8List();
+
+      // Save the PDF to a temporary file
+      final output = await getTemporaryDirectory();
+      final file = File('${output.path}/privacy_policy.pdf');
+      await file.writeAsBytes(bytes);
+
+      // Share the PDF
+      await Share.shareXFiles([
+        XFile(file.path),
+      ], text: 'LionTent Privacy Policy');
+    } catch (e) {
+      print('Error sharing PDF: $e');
+      // You might want to show a snackbar or dialog here to inform the user about the error
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: colors4Liontent.pagegrey,
+      backgroundColor: const Color.fromARGB(255, 247, 247, 247),
       appBar: AppBar(
         backgroundColor: colors4Liontent.primary,
         title: Text('Privacy Policy', style: TextStyle(color: Colors.white)),
@@ -232,7 +260,7 @@ class Privacy extends StatelessWidget {
           _buildPolicySection(
             title: '7. Children\'s Privacy',
             content:
-                'Our services are not intended for individuals under the age of 18. We do not knowingly collect personal information from children. If you are a parent or guardian and believe your child has provided us with personal information, please contact us, and we will take steps to delete such information.',
+                'Our services are not intended for individuals under the age of 16. We do not knowingly collect personal information from children. If you are a parent or guardian and believe your child has provided us with personal information, please contact us, and we will take steps to delete such information.',
           ),
           SizedBox(height: 16),
           _buildPolicySection(
@@ -247,6 +275,7 @@ class Privacy extends StatelessWidget {
 
   Widget _buildPolicySection({required String title, required String content}) {
     return Container(
+      width: double.infinity,
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -331,7 +360,7 @@ class Privacy extends StatelessWidget {
           ),
           SizedBox(height: 24),
           lengthButton1Light(
-            navigateTo: () {},
+            navigateTo: _generateAndSharePDF,
             widgetchoice: Text(
               'Download Privacy Policy',
               style: TextStyle(color: Colors.white),

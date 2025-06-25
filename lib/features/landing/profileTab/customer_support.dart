@@ -22,7 +22,7 @@ class _CustomerServiceState extends State<CustomerService>
   String? _selectedIssueType;
   bool _isSubmitting = false;
   bool _isSuccessful = false;
-  bool _showFaqAnswer = false;
+  final bool _showFaqAnswer = false;
   int _expandedFaqIndex = -1;
   bool _hasAttachment = false;
   late TabController _tabController;
@@ -357,7 +357,7 @@ class _CustomerServiceState extends State<CustomerService>
                                 ),
                               ),
                               Text(
-                                '${_formatDate(ticket['date'])}',
+                                _formatDate(ticket['date']),
                                 style: TextStyle(
                                   color: Colors.grey[600],
                                   fontSize: 13,

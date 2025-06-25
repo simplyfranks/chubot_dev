@@ -48,6 +48,10 @@ dependencies:
   path_provider: ^2.1.5
   camera: ^0.11.1
   image_cropper: ^9.1.0
+  pdf: ^3.10.7
+  share_plus: ^7.2.1
+  fluttertoast: ^8.2.12
+  lorem_ipsum: ^0.0.3
 
 dev_dependencies:
   flutter_test: 
@@ -74,6 +78,8 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/TaxiDesign.png
+    - assets/images/testing.png
+    - assets/docs/privacy_policy.pdf
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
